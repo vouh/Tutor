@@ -4,7 +4,7 @@ import { Mail, Phone, MapPin, Facebook, Twitter, Instagram, Linkedin, Youtube, B
 
 const Footer = () => {
   return (
-    <footer className="bg-black text-white">
+    <footer style={{ backgroundColor: '#6d074d' }} className="text-white">
       {/* Main Footer Content */}
       <div className="px-8 py-16">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
@@ -12,7 +12,7 @@ const Footer = () => {
           {/* Brand Section */}
           <div className="space-y-6">
             <div className="font-montserrat text-3xl font-bold tracking-wide">
-              TUTOR
+              Tutor
             </div>
             <p className="font-open-sans text-gray-300 text-sm leading-relaxed">
               Empowering minds, shaping futures. Experience the next generation of personalized learning with cutting-edge technology and expert guidance.
@@ -103,7 +103,7 @@ const Footer = () => {
       </div>
 
       {/* Newsletter Section */}
-      <div className="border-t border-gray-800 px-8 py-8">
+      <div className="border-t border-purple-400 px-8 py-8">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col lg:flex-row items-center justify-between space-y-4 lg:space-y-0">
             <div>
@@ -114,9 +114,9 @@ const Footer = () => {
               <input 
                 type="email" 
                 placeholder="Enter your email" 
-                className="bg-gray-800 border border-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:border-white transition-colors duration-300 font-open-sans text-sm"
+                className="bg-purple-800 border border-purple-400 text-white px-4 py-2 rounded-lg focus:outline-none focus:border-white transition-colors duration-300 font-open-sans text-sm placeholder-gray-300"
               />
-              <button className="bg-white text-black px-6 py-2 rounded-lg font-montserrat font-semibold text-sm hover:bg-gray-200 transition-colors duration-300">
+              <button className="bg-white text-purple-700 px-6 py-2 rounded-lg font-montserrat font-semibold text-sm hover:bg-gray-200 transition-colors duration-300">
                 Subscribe
               </button>
             </div>
@@ -125,10 +125,10 @@ const Footer = () => {
       </div>
 
       {/* Bottom Footer */}
-      <div className="border-t border-gray-800 px-8 py-6">
+      <div className="border-t border-purple-400 px-8 py-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
           <div className="font-open-sans text-sm text-gray-400">
-            © 2025 TUTOR. All rights reserved. | Privacy Policy | Terms of Service | Cookie Policy
+            © 2025 Tutor. All rights reserved. | Privacy Policy | Terms of Service | Cookie Policy
           </div>
           <div className="flex items-center space-x-6">
             <span className="font-open-sans text-sm text-gray-400">Trusted by 50,000+ students worldwide</span>
