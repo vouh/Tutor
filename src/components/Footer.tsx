@@ -103,7 +103,7 @@ const Footer = () => {
       </div>
 
       {/* Bottom Footer */}
-      <div className="border-t border-purple-400 px-8 py-6">
+      <div className="px-8 py-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
           <div className="font-open-sans text-sm text-gray-400">
             © 2025 Tutor Kenya. All rights reserved. | Privacy Policy | Terms of Service | Cookie Policy
