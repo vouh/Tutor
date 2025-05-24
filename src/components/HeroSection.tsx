@@ -4,11 +4,12 @@ import React, { useState, useEffect } from 'react';
 const HeroSection = () => {
   const [currentImage, setCurrentImage] = useState(0);
   
+  // Updated images to better represent Kenyan educational environment
   const heroImages = [
-    'https://images.unsplash.com/photo-1649972904349-6e44c42644a7?w=1920&h=500&fit=crop',
-    'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=1920&h=500&fit=crop',
-    'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=1920&h=500&fit=crop',
-    'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=1920&h=500&fit=crop'
+    'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=1920&h=500&fit=crop',
+    'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=1920&h=500&fit=crop',
+    'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1920&h=500&fit=crop',
+    'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=1920&h=500&fit=crop'
   ];
 
   useEffect(() => {
@@ -30,7 +31,7 @@ const HeroSection = () => {
         >
           <img
             src={image}
-            alt={`Hero image ${index + 1}`}
+            alt={`Educational environment ${index + 1}`}
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-black bg-opacity-40"></div>
@@ -39,13 +40,13 @@ const HeroSection = () => {
       
       <div className="absolute inset-0 flex flex-col justify-center items-center text-center px-4">
         <h1 className="font-montserrat text-5xl text-white font-bold mb-6 max-w-4xl leading-tight">
-          Unlock Your Child's Potential
+          Unlock Your Academic Potential in Kenya
         </h1>
         <p className="font-open-sans text-2xl text-white mb-8 max-w-3xl">
-          Get personalized learning experiences for your child and see the difference
+          Excellence in KCSE, KCPE, and beyond with personalized learning experiences
         </p>
         <button className="bg-tutor-primary text-white font-montserrat text-lg px-5 py-3 rounded-xl hover:bg-opacity-90 transition-all duration-300 transform hover:scale-105">
-          Get Started
+          Start Learning Today
         </button>
       </div>
     </section>

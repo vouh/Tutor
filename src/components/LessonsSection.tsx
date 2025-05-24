@@ -5,27 +5,27 @@ const LessonsSection = () => {
   const lessons = [
     {
       id: 1,
-      title: 'Math Fundamentals',
-      description: 'Master basic arithmetic and problem-solving skills with our interactive math lessons.',
-      image: 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=300&h=200&fit=crop'
+      title: 'Mathematics Mastery',
+      description: 'Excel in KCSE Mathematics with comprehensive problem-solving techniques and exam strategies.',
+      image: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=300&h=200&fit=crop'
     },
     {
       id: 2,
-      title: 'Reading Comprehension',
-      description: 'Improve reading skills and understanding through engaging stories and exercises.',
-      image: 'https://images.unsplash.com/photo-1649972904349-6e44c42644a7?w=300&h=200&fit=crop'
+      title: 'English & Literature',
+      description: 'Master English language and literature with focus on KCSE exam requirements and essay writing.',
+      image: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&h=200&fit=crop'
     },
     {
       id: 3,
-      title: 'Science Exploration',
-      description: 'Discover the wonders of science through hands-on experiments and explanations.',
-      image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=300&h=200&fit=crop'
+      title: 'Sciences (Physics, Chemistry, Biology)',
+      description: 'Comprehensive science education covering all three sciences with practical applications.',
+      image: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=300&h=200&fit=crop'
     },
     {
       id: 4,
-      title: 'Creative Writing',
-      description: 'Express yourself through creative writing exercises and storytelling techniques.',
-      image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=300&h=200&fit=crop'
+      title: 'Humanities & Social Studies',
+      description: 'History, Geography, and CRE courses designed for KCSE excellence and university preparation.',
+      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=200&fit=crop'
     }
   ];
 
@@ -33,10 +33,10 @@ const LessonsSection = () => {
     <section className="bg-white min-h-[400px] py-16 px-4">
       <div className="max-w-6xl mx-auto">
         <h2 className="font-montserrat text-2xl text-tutor-primary font-semibold text-center mb-6">
-          Quick Lessons
+          Subject-Focused Learning
         </h2>
         <p className="font-open-sans text-lg text-tutor-text text-center max-w-3xl mx-auto mb-12">
-          Get a taste of our tutoring services with our quick lessons. Our experienced tutors will guide you through interactive and engaging lessons.
+          Specialized tutoring for KCSE subjects with experienced Kenyan educators who understand the curriculum and exam requirements.
         </p>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">

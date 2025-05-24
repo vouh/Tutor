@@ -15,7 +15,7 @@ const Footer = () => {
               Tutor
             </div>
             <p className="font-open-sans text-gray-300 text-sm leading-relaxed">
-              Empowering minds, shaping futures. Experience the next generation of personalized learning with cutting-edge technology and expert guidance.
+              Empowering minds across Kenya. Experience world-class education with personalized learning and expert guidance tailored for the Kenyan student.
             </p>
             <div className="flex space-x-4">
               <a href="#" className="text-gray-400 hover:text-white transition-colors duration-300">
@@ -63,7 +63,7 @@ const Footer = () => {
               </li>
               <li className="flex items-center space-x-2">
                 <Award size={16} className="text-gray-400" />
-                <span className="font-open-sans text-gray-300 text-sm">Test Preparation</span>
+                <span className="font-open-sans text-gray-300 text-sm">KCSE/KCPE Preparation</span>
               </li>
               <li className="flex items-center space-x-2">
                 <Clock size={16} className="text-gray-400" />
@@ -79,46 +79,24 @@ const Footer = () => {
               <div className="flex items-start space-x-3">
                 <Mail size={16} className="text-gray-400 mt-1" />
                 <div>
-                  <p className="font-open-sans text-gray-300 text-sm">support@tutor.com</p>
-                  <p className="font-open-sans text-gray-300 text-sm">partnerships@tutor.com</p>
+                  <p className="font-open-sans text-gray-300 text-sm">info@tutor.co.ke</p>
+                  <p className="font-open-sans text-gray-300 text-sm">support@tutor.co.ke</p>
                 </div>
               </div>
               <div className="flex items-start space-x-3">
                 <Phone size={16} className="text-gray-400 mt-1" />
                 <div>
-                  <p className="font-open-sans text-gray-300 text-sm">+1 (555) 123-TUTOR</p>
-                  <p className="font-open-sans text-gray-300 text-sm">+1 (555) 123-8886</p>
+                  <p className="font-open-sans text-gray-300 text-sm">+254 700 123 456</p>
+                  <p className="font-open-sans text-gray-300 text-sm">+254 711 987 654</p>
                 </div>
               </div>
               <div className="flex items-start space-x-3">
                 <MapPin size={16} className="text-gray-400 mt-1" />
                 <p className="font-open-sans text-gray-300 text-sm">
-                  123 Education Ave<br />
-                  Learning District, CA 90210
+                  Westlands Road<br />
+                  Nairobi, Kenya
                 </p>
               </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Newsletter Section */}
-      <div className="border-t border-purple-400 px-8 py-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col lg:flex-row items-center justify-between space-y-4 lg:space-y-0">
-            <div>
-              <h3 className="font-montserrat text-lg font-semibold text-white mb-2">Stay Updated</h3>
-              <p className="font-open-sans text-gray-300 text-sm">Get the latest learning tips and exclusive offers</p>
-            </div>
-            <div className="flex space-x-3">
-              <input 
-                type="email" 
-                placeholder="Enter your email" 
-                className="bg-purple-800 border border-purple-400 text-white px-4 py-2 rounded-lg focus:outline-none focus:border-white transition-colors duration-300 font-open-sans text-sm placeholder-gray-300"
-              />
-              <button className="bg-white text-purple-700 px-6 py-2 rounded-lg font-montserrat font-semibold text-sm hover:bg-gray-200 transition-colors duration-300">
-                Subscribe
-              </button>
             </div>
           </div>
         </div>
@@ -128,10 +106,10 @@ const Footer = () => {
       <div className="border-t border-purple-400 px-8 py-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
           <div className="font-open-sans text-sm text-gray-400">
-            © 2025 Tutor. All rights reserved. | Privacy Policy | Terms of Service | Cookie Policy
+            © 2025 Tutor Kenya. All rights reserved. | Privacy Policy | Terms of Service | Cookie Policy
           </div>
           <div className="flex items-center space-x-6">
-            <span className="font-open-sans text-sm text-gray-400">Trusted by 50,000+ students worldwide</span>
+            <span className="font-open-sans text-sm text-gray-400">Trusted by 10,000+ Kenyan students</span>
             <div className="flex space-x-2">
               <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
               <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
