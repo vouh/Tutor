@@ -24,9 +24,9 @@ export default {
 				'montserrat': ['Montserrat', 'sans-serif'],
 			},
 			colors: {
-				'tutor-primary': '#6d074d',
-				'tutor-gray': '#f7f7f7',
-				'tutor-text': '#333333',
+				'tutor-primary': '#BB2E2E',
+				'tutor-gray': '#F5F5F5',
+				'tutor-text': '#1A1A1A',
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',
