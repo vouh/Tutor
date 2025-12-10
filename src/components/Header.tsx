@@ -10,7 +10,6 @@ const Header = () => {
     { name: 'Home', path: '/' },
     { name: 'About', path: '/about' },
     { name: 'Courses', path: '/courses' },
-    { name: 'Tutors', path: '/tutors' },
     { name: 'Resources', path: '/resources' },
     { name: 'Pricing', path: '/pricing' },
     { name: 'Contact', path: '/contact' },
@@ -46,9 +45,11 @@ const Header = () => {
 
           {/* CTA Button */}
           <div className="hidden md:block">
-            <button className="bg-primary text-primary-foreground px-6 py-2.5 rounded-lg font-montserrat font-semibold hover:bg-accent transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-lg">
-              Get Started
-            </button>
+            <Link to="/auth">
+              <button className="bg-primary text-primary-foreground px-6 py-2.5 rounded-lg font-montserrat font-semibold hover:bg-accent transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-lg">
+                Get Started
+              </button>
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -75,9 +76,11 @@ const Header = () => {
                 {item.name}
               </Link>
             ))}
-            <button className="w-full bg-primary text-primary-foreground px-4 py-3 rounded-lg font-montserrat font-semibold hover:bg-accent transition-colors">
-              Get Started
-            </button>
+            <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
+              <button className="w-full bg-primary text-primary-foreground px-4 py-3 rounded-lg font-montserrat font-semibold hover:bg-accent transition-colors">
+                Get Started
+              </button>
+            </Link>
           </nav>
         </div>
       )}

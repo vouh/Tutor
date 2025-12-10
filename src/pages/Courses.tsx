@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { BookOpen, Clock, Users, Star } from 'lucide-react';
@@ -146,9 +147,11 @@ const Courses = () => {
                         <span>{course.students} students</span>
                       </div>
                     </div>
-                    <button className="w-full bg-primary text-primary-foreground py-3 rounded-lg font-montserrat font-semibold hover:bg-accent transition-colors">
-                      Enroll Now
-                    </button>
+                    <Link to={`/course/${course.id}`}>
+                      <button className="w-full bg-primary text-primary-foreground py-3 rounded-lg font-montserrat font-semibold hover:bg-accent transition-colors">
+                        Enroll Now
+                      </button>
+                    </Link>
                   </div>
                 </div>
               ))}

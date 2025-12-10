@@ -43,7 +43,6 @@ const Footer = () => {
               <li><Link to="/" className="font-open-sans text-muted-foreground hover:text-primary transition-colors duration-300 text-sm">Home</Link></li>
               <li><Link to="/about" className="font-open-sans text-muted-foreground hover:text-primary transition-colors duration-300 text-sm">About Us</Link></li>
               <li><Link to="/courses" className="font-open-sans text-muted-foreground hover:text-primary transition-colors duration-300 text-sm">Courses</Link></li>
-              <li><Link to="/tutors" className="font-open-sans text-muted-foreground hover:text-primary transition-colors duration-300 text-sm">Find a Tutor</Link></li>
               <li><Link to="/resources" className="font-open-sans text-muted-foreground hover:text-primary transition-colors duration-300 text-sm">Resources</Link></li>
               <li><Link to="/pricing" className="font-open-sans text-muted-foreground hover:text-primary transition-colors duration-300 text-sm">Pricing</Link></li>
             </ul>

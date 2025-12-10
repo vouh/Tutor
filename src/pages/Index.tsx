@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 import Header from '../components/Header';
 import HeroSection from '../components/HeroSection';
 import Footer from '../components/Footer';
@@ -46,10 +47,12 @@ const Index = () => {
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="font-montserrat text-4xl font-bold mb-6">Ready to Excel in Your Studies?</h2>
             <p className="font-open-sans text-xl mb-8">Join thousands of Kenyan students achieving academic excellence</p>
-            <button className="bg-white text-primary px-8 py-4 rounded-xl font-montserrat font-bold text-lg hover:bg-gray-100 transition-all transform hover:scale-105 inline-flex items-center space-x-2">
-              <span>Get Started Today</span>
-              <ChevronRight size={20} />
-            </button>
+            <Link to="/auth">
+              <button className="bg-white text-primary px-8 py-4 rounded-xl font-montserrat font-bold text-lg hover:bg-gray-100 transition-all transform hover:scale-105 inline-flex items-center space-x-2">
+                <span>Get Started Today</span>
+                <ChevronRight size={20} />
+              </button>
+            </Link>
           </div>
         </section>
       </main>
