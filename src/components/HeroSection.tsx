@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, BookOpen, GraduationCap, Briefcase, Award, Sparkles } from 'lucide-react';
+import { Search, Brain, Code, Heart, Users, TrendingUp, Wallet, Palette, Dumbbell, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const HeroSection = () => {
@@ -16,10 +16,14 @@ const HeroSection = () => {
   };
 
   const categories = [
-    { icon: <GraduationCap size={24} />, label: 'KCSE', color: 'from-blue-500 to-blue-600' },
-    { icon: <BookOpen size={24} />, label: 'KCPE', color: 'from-green-500 to-green-600' },
-    { icon: <Award size={24} />, label: 'University', color: 'from-purple-500 to-purple-600' },
-    { icon: <Briefcase size={24} />, label: 'Professional', color: 'from-orange-500 to-orange-600' },
+    { icon: <Brain size={24} />, label: 'AI & Tech', color: 'from-blue-500 to-cyan-500' },
+    { icon: <Code size={24} />, label: 'Coding', color: 'from-green-500 to-emerald-500' },
+    { icon: <Heart size={24} />, label: 'Mental Health', color: 'from-pink-500 to-rose-500' },
+    { icon: <Users size={24} />, label: 'Relationships', color: 'from-purple-500 to-violet-500' },
+    { icon: <TrendingUp size={24} />, label: 'Personal Dev', color: 'from-orange-500 to-amber-500' },
+    { icon: <Wallet size={24} />, label: 'Finance', color: 'from-emerald-500 to-teal-500' },
+    { icon: <Palette size={24} />, label: 'Creative', color: 'from-fuchsia-500 to-pink-500' },
+    { icon: <Dumbbell size={24} />, label: 'Health & Fitness', color: 'from-red-500 to-orange-500' },
   ];
 
   const floatingElements = [
@@ -32,7 +36,15 @@ const HeroSection = () => {
   ];
 
   return (
-    <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden bg-gradient-to-br from-slate-900 via-primary/90 to-accent/80">
+    <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
+      {/* Background Image with Overlay */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: `url('https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1920&q=80')`,
+        }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-900/95 via-primary/80 to-accent/70" />
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
         {floatingElements.map((el, i) => (
@@ -91,9 +103,9 @@ const HeroSection = () => {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="font-montserrat text-4xl sm:text-5xl md:text-7xl font-bold text-white mb-6 leading-tight"
         >
-          Master Your
+          Learn Anything.
           <span className="block bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400 bg-clip-text text-transparent">
-            Future Today
+            Grow Everywhere.
           </span>
         </motion.h1>
 
@@ -104,7 +116,7 @@ const HeroSection = () => {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="font-open-sans text-lg sm:text-xl text-white/80 max-w-2xl mx-auto mb-10"
         >
-          Premium KCSE, KCPE, and professional courses designed to help you excel. 
+          Premium courses in AI, coding, personal development, and more. 
           Pay with M-Pesa and start learning instantly.
         </motion.p>
 
@@ -167,7 +179,7 @@ const HeroSection = () => {
             className="mt-4 flex flex-wrap justify-center gap-2"
           >
             <span className="text-white/60 text-sm">Popular:</span>
-            {['Mathematics', 'Physics', 'Chemistry', 'English', 'Kiswahili'].map((term) => (
+            {['ChatGPT', 'Python', 'Mental Health', 'Investing', 'Relationships'].map((term) => (
               <button
                 key={term}
                 onClick={() => navigate(`/courses?search=${term}`)}
@@ -184,7 +196,7 @@ const HeroSection = () => {
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.4 }}
-          className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto"
+          className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-3 max-w-4xl mx-auto"
         >
           {categories.map((cat, index) => (
             <motion.button
@@ -213,9 +225,9 @@ const HeroSection = () => {
           className="mt-16 grid grid-cols-3 gap-8 max-w-2xl mx-auto"
         >
           {[
-            { value: '10K+', label: 'Students' },
-            { value: '500+', label: 'Courses' },
-            { value: '95%', label: 'Success Rate' },
+            { value: '5K+', label: 'Learners' },
+            { value: '100+', label: 'Courses' },
+            { value: '98%', label: 'Satisfaction' },
           ].map((stat) => (
             <div key={stat.label} className="text-center">
               <p className="text-3xl md:text-4xl font-bold text-white">{stat.value}</p>
