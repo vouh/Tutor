@@ -5,7 +5,7 @@
   "framework": "vite",
   "build": {
     "env": {
-      "NODE_VERSION": "18.x"
+      "NODE_VERSION": "20.x"
     }
   },
   "functions": {
