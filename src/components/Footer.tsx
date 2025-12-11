@@ -137,10 +137,10 @@ const Footer = () => {
               © 2025 TutorKE. All rights reserved.
             </p>
             <div className="flex items-center gap-6">
-              <Link to="#" className="text-slate-500 hover:text-primary text-sm transition-colors">
+              <Link to="/privacy" className="text-slate-500 hover:text-primary text-sm transition-colors">
                 Privacy Policy
               </Link>
-              <Link to="#" className="text-slate-500 hover:text-primary text-sm transition-colors">
+              <Link to="/terms" className="text-slate-500 hover:text-primary text-sm transition-colors">
                 Terms of Service
               </Link>
             </div>

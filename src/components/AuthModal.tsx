@@ -238,9 +238,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTab = 'lo
             {activeTab === 'signup' && (
               <p className="text-xs text-center text-gray-500 mt-4">
                 By signing up, you agree to our{' '}
-                <a href="#" className="text-primary hover:underline">Terms of Service</a>
+                <a href="/terms" className="text-primary hover:underline font-medium">Terms of Service</a>
                 {' '}and{' '}
-                <a href="#" className="text-primary hover:underline">Privacy Policy</a>
+                <a href="/privacy" className="text-primary hover:underline font-medium">Privacy Policy</a>
               </p>
             )}
           </form>
