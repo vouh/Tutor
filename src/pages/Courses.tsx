@@ -2,22 +2,23 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import { BookOpen, Clock, Users, Star, Brain, Code, Heart, TrendingUp, Wallet, Palette, Dumbbell } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { BookOpen, Clock, Users, Star, Brain, Code, Heart, TrendingUp, Wallet, Palette, Dumbbell, Search, Filter, Sparkles } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const Courses = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const categories = [
-    { id: 'all', label: 'All', icon: <BookOpen size={18} /> },
-    { id: 'ai-tech', label: 'AI & Tech', icon: <Brain size={18} /> },
-    { id: 'coding', label: 'Coding', icon: <Code size={18} /> },
-    { id: 'mental-health', label: 'Mental Health', icon: <Heart size={18} /> },
-    { id: 'relationships', label: 'Relationships', icon: <Users size={18} /> },
-    { id: 'personal-dev', label: 'Personal Dev', icon: <TrendingUp size={18} /> },
-    { id: 'finance', label: 'Finance', icon: <Wallet size={18} /> },
-    { id: 'creative', label: 'Creative', icon: <Palette size={18} /> },
-    { id: 'health-fitness', label: 'Health & Fitness', icon: <Dumbbell size={18} /> },
+    { id: 'all', label: 'All Courses', icon: <BookOpen size={16} /> },
+    { id: 'ai-tech', label: 'AI & Tech', icon: <Brain size={16} /> },
+    { id: 'coding', label: 'Coding', icon: <Code size={16} /> },
+    { id: 'mental-health', label: 'Mental Health', icon: <Heart size={16} /> },
+    { id: 'relationships', label: 'Relationships', icon: <Users size={16} /> },
+    { id: 'personal-dev', label: 'Personal Dev', icon: <TrendingUp size={16} /> },
+    { id: 'finance', label: 'Finance', icon: <Wallet size={16} /> },
+    { id: 'creative', label: 'Creative', icon: <Palette size={16} /> },
+    { id: 'health-fitness', label: 'Fitness', icon: <Dumbbell size={16} /> },
   ];
 
   const courses = [
@@ -111,118 +112,185 @@ const Courses = () => {
     }
   ];
 
-  const filteredCourses = selectedCategory === 'all' 
-    ? courses 
-    : courses.filter(course => course.category === selectedCategory);
+  const filteredCourses = courses.filter(course => {
+    const matchesCategory = selectedCategory === 'all' || course.category === selectedCategory;
+    const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         course.description.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900">
       <Header />
-      <main className="flex-1 pt-16">
+      
+      <main className="flex-1">
         {/* Hero Section */}
-        <section className="bg-gradient-to-br from-slate-900 via-slate-800 to-primary/50 text-white py-16 sm:py-20">
+        <section className="bg-gradient-to-br from-slate-900 via-slate-800 to-primary/40 text-white pt-20 pb-8 sm:pb-12">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <motion.h1 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="font-montserrat text-3xl sm:text-4xl md:text-5xl font-bold mb-4"
+              className="text-center mb-8"
             >
-              Explore Courses
-            </motion.h1>
-            <motion.p 
+              <span className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full text-sm mb-4">
+                <Sparkles size={16} className="text-yellow-400" />
+                {courses.length}+ Quality Courses
+              </span>
+              <h1 className="font-montserrat text-2xl sm:text-3xl md:text-4xl font-bold mb-3">
+                Explore Our Courses
+              </h1>
+              <p className="text-white/70 text-sm sm:text-base max-w-xl mx-auto">
+                From AI to wellness, coding to creativity — find courses that transform your life
+              </p>
+            </motion.div>
+
+            {/* Search Bar */}
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="text-white/70 text-base sm:text-lg max-w-2xl"
+              className="max-w-xl mx-auto"
             >
-              From AI to wellness, coding to creativity — find courses that transform your life
-            </motion.p>
+              <div className="relative">
+                <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search courses..."
+                  className="w-full pl-12 pr-4 py-3.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl text-white placeholder:text-white/50 focus:bg-white/20 focus:border-white/40 focus:outline-none transition-all"
+                />
+              </div>
+            </motion.div>
           </div>
         </section>
 
-        {/* Filter Section */}
-        <section className="py-4 bg-background sticky top-16 z-30 border-b shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+        {/* Category Filter */}
+        <section className="sticky top-[64px] z-30 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
               {categories.map((category) => (
                 <button
                   key={category.id}
                   onClick={() => setSelectedCategory(category.id)}
-                  className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full font-medium text-xs sm:text-sm transition-all duration-300 whitespace-nowrap ${
+                  className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-full font-medium text-xs sm:text-sm transition-all duration-300 whitespace-nowrap flex-shrink-0 ${
                     selectedCategory === category.id
-                      ? 'bg-primary text-white shadow-md'
-                      : 'bg-muted hover:bg-primary/10 text-foreground'
+                      ? 'bg-primary text-white shadow-md shadow-primary/25'
+                      : 'bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200'
                   }`}
                 >
                   {category.icon}
-                  <span className="hidden sm:inline">{category.label}</span>
-                  <span className="sm:hidden">{category.label.split(' ')[0]}</span>
+                  <span>{category.label}</span>
                 </button>
               ))}
             </div>
           </div>
         </section>
 
+        {/* Results Count */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Showing <span className="font-semibold text-slate-900 dark:text-white">{filteredCourses.length}</span> courses
+            {selectedCategory !== 'all' && (
+              <> in <span className="font-semibold text-primary">{categories.find(c => c.id === selectedCategory)?.label}</span></>
+            )}
+          </p>
+        </section>
+
         {/* Courses Grid */}
-        <section className="py-8 sm:py-12">
+        <section className="pb-12 sm:pb-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-              {filteredCourses.map((course, index) => (
-                <motion.div
-                  key={course.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="bg-card rounded-xl overflow-hidden border hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
-                >
-                  <div className="relative">
-                    <img
-                      src={course.image}
-                      alt={course.title}
-                      className="w-full h-36 sm:h-40 object-cover"
-                    />
-                    <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg flex items-center gap-1">
-                      <Star size={12} className="text-yellow-500 fill-yellow-500" />
-                      <span className="text-xs font-semibold">{course.rating}</span>
-                    </div>
-                  </div>
-                  <div className="p-4 space-y-3">
-                    <span className="inline-block bg-primary/10 text-primary px-2 py-0.5 rounded-md text-xs font-medium capitalize">
-                      {course.category.replace('-', ' ')}
-                    </span>
-                    <h3 className="font-semibold text-base line-clamp-2">{course.title}</h3>
-                    <p className="text-muted-foreground text-sm line-clamp-2">{course.description}</p>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Clock size={12} />
-                        <span>{course.duration}</span>
+            <AnimatePresence mode="wait">
+              <motion.div 
+                key={selectedCategory + searchQuery}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6"
+              >
+                {filteredCourses.map((course, index) => (
+                  <motion.div
+                    key={course.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    whileHover={{ y: -4 }}
+                    className="bg-white dark:bg-slate-800 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-xl transition-all duration-300 group"
+                  >
+                    <div className="relative overflow-hidden">
+                      <img
+                        src={course.image}
+                        alt={course.title}
+                        className="w-full h-36 sm:h-40 object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-sm px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm">
+                        <Star size={12} className="text-yellow-500 fill-yellow-500" />
+                        <span className="text-xs font-bold text-slate-900">{course.rating}</span>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Users size={12} />
-                        <span>{course.students.toLocaleString()}</span>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                    
+                    <div className="p-4 space-y-3">
+                      <span className="inline-block bg-primary/10 text-primary px-2.5 py-1 rounded-lg text-xs font-semibold capitalize">
+                        {course.category.replace('-', ' ')}
+                      </span>
+                      <h3 className="font-bold text-base text-slate-900 dark:text-white line-clamp-2 min-h-[48px]">
+                        {course.title}
+                      </h3>
+                      <p className="text-slate-500 dark:text-slate-400 text-sm line-clamp-2">
+                        {course.description}
+                      </p>
+                      
+                      <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
+                        <div className="flex items-center gap-1">
+                          <Clock size={14} />
+                          <span>{course.duration}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Users size={14} />
+                          <span>{course.students.toLocaleString()}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-700">
+                        <span className="font-bold text-lg text-primary">
+                          KES {course.price.toLocaleString()}
+                        </span>
+                        <Link to={`/course/${course.id}`}>
+                          <button className="bg-slate-900 dark:bg-primary text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-primary dark:hover:bg-primary/90 transition-colors">
+                            View
+                          </button>
+                        </Link>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between pt-3 border-t">
-                      <span className="font-bold text-primary">KES {course.price.toLocaleString()}</span>
-                      <Link to={`/course/${course.id}`}>
-                        <button className="bg-primary text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
-                          View
-                        </button>
-                      </Link>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+                  </motion.div>
+                ))}
+              </motion.div>
+            </AnimatePresence>
             
             {filteredCourses.length === 0 && (
-              <div className="text-center py-20">
-                <p className="text-muted-foreground">No courses found in this category yet.</p>
-              </div>
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center py-20"
+              >
+                <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Search size={32} className="text-slate-400" />
+                </div>
+                <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-2">No courses found</h3>
+                <p className="text-slate-500 dark:text-slate-400 text-sm">Try adjusting your search or filter</p>
+                <button 
+                  onClick={() => { setSelectedCategory('all'); setSearchQuery(''); }}
+                  className="mt-4 text-primary font-semibold text-sm hover:underline"
+                >
+                  Clear filters
+                </button>
+              </motion.div>
             )}
           </div>
         </section>
       </main>
+      
       <Footer />
     </div>
   );
