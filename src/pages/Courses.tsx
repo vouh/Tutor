@@ -116,24 +116,24 @@ const Courses = () => {
     : courses.filter(course => course.category === selectedCategory);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-background">
       <Header />
-      <main className="flex-1">
+      <main className="flex-1 pt-16">
         {/* Hero Section */}
-        <section className="bg-gradient-to-r from-primary to-accent text-primary-foreground py-20">
+        <section className="bg-gradient-to-br from-slate-900 via-slate-800 to-primary/50 text-white py-16 sm:py-20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <motion.h1 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="font-montserrat text-5xl font-bold mb-6"
+              className="font-montserrat text-3xl sm:text-4xl md:text-5xl font-bold mb-4"
             >
-              Explore Our Courses
+              Explore Courses
             </motion.h1>
             <motion.p 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="font-open-sans text-xl max-w-3xl"
+              className="text-white/70 text-base sm:text-lg max-w-2xl"
             >
               From AI to wellness, coding to creativity — find courses that transform your life
             </motion.p>
@@ -141,21 +141,22 @@ const Courses = () => {
         </section>
 
         {/* Filter Section */}
-        <section className="py-6 bg-muted sticky top-0 z-40 border-b">
+        <section className="py-4 bg-background sticky top-16 z-30 border-b shadow-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-wrap gap-2 justify-center">
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
               {categories.map((category) => (
                 <button
                   key={category.id}
                   onClick={() => setSelectedCategory(category.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-full font-medium text-sm transition-all duration-300 ${
+                  className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full font-medium text-xs sm:text-sm transition-all duration-300 whitespace-nowrap ${
                     selectedCategory === category.id
-                      ? 'bg-primary text-primary-foreground shadow-lg'
-                      : 'bg-card hover:bg-accent/10 text-foreground border'
+                      ? 'bg-primary text-white shadow-md'
+                      : 'bg-muted hover:bg-primary/10 text-foreground'
                   }`}
                 >
                   {category.icon}
-                  {category.label}
+                  <span className="hidden sm:inline">{category.label}</span>
+                  <span className="sm:hidden">{category.label.split(' ')[0]}</span>
                 </button>
               ))}
             </div>
@@ -163,48 +164,48 @@ const Courses = () => {
         </section>
 
         {/* Courses Grid */}
-        <section className="py-16 bg-background">
+        <section className="py-8 sm:py-12">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
               {filteredCourses.map((course, index) => (
                 <motion.div
                   key={course.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="bg-card rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
+                  className="bg-card rounded-xl overflow-hidden border hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
                 >
-                  <img
-                    src={course.image}
-                    alt={course.title}
-                    className="w-full h-40 object-cover"
-                  />
-                  <div className="p-5 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="bg-primary/10 text-primary px-2 py-1 rounded-full text-xs font-semibold capitalize">
-                        {course.category.replace('-', ' ')}
-                      </span>
-                      <div className="flex items-center space-x-1">
-                        <Star size={14} className="text-yellow-500 fill-yellow-500" />
-                        <span className="font-semibold text-sm">{course.rating}</span>
-                      </div>
+                  <div className="relative">
+                    <img
+                      src={course.image}
+                      alt={course.title}
+                      className="w-full h-36 sm:h-40 object-cover"
+                    />
+                    <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg flex items-center gap-1">
+                      <Star size={12} className="text-yellow-500 fill-yellow-500" />
+                      <span className="text-xs font-semibold">{course.rating}</span>
                     </div>
-                    <h3 className="font-montserrat text-lg font-bold line-clamp-2">{course.title}</h3>
-                    <p className="font-open-sans text-muted-foreground text-sm line-clamp-2">{course.description}</p>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <div className="flex items-center space-x-1">
-                        <Clock size={14} />
+                  </div>
+                  <div className="p-4 space-y-3">
+                    <span className="inline-block bg-primary/10 text-primary px-2 py-0.5 rounded-md text-xs font-medium capitalize">
+                      {course.category.replace('-', ' ')}
+                    </span>
+                    <h3 className="font-semibold text-base line-clamp-2">{course.title}</h3>
+                    <p className="text-muted-foreground text-sm line-clamp-2">{course.description}</p>
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <Clock size={12} />
                         <span>{course.duration}</span>
                       </div>
-                      <div className="flex items-center space-x-1">
-                        <Users size={14} />
-                        <span>{course.students}</span>
+                      <div className="flex items-center gap-1">
+                        <Users size={12} />
+                        <span>{course.students.toLocaleString()}</span>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between pt-2 border-t">
-                      <span className="font-bold text-lg text-primary">KES {course.price.toLocaleString()}</span>
+                    <div className="flex items-center justify-between pt-3 border-t">
+                      <span className="font-bold text-primary">KES {course.price.toLocaleString()}</span>
                       <Link to={`/course/${course.id}`}>
-                        <button className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-semibold hover:bg-accent transition-colors">
+                        <button className="bg-primary text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
                           View
                         </button>
                       </Link>
@@ -216,7 +217,7 @@ const Courses = () => {
             
             {filteredCourses.length === 0 && (
               <div className="text-center py-20">
-                <p className="text-muted-foreground text-lg">No courses found in this category yet.</p>
+                <p className="text-muted-foreground">No courses found in this category yet.</p>
               </div>
             )}
           </div>

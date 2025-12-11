@@ -15,23 +15,19 @@ const Contact = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <SEO title="Contact Us" description="Get in touch with Tutor Kenya for any questions about our courses." />
+    <div className="min-h-screen flex flex-col bg-background">
+      <SEO title="Contact Us" description="Get in touch with TutorKE for any questions about our courses." />
       <Header />
-      <main className="flex-1">
+      <main className="flex-1 pt-16">
         {/* Hero Section */}
-        <section className="relative bg-gradient-to-r from-primary to-accent text-primary-foreground py-20 overflow-hidden">
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-10 left-10 w-32 h-32 border-2 border-white rounded-full"></div>
-            <div className="absolute bottom-10 right-10 w-48 h-48 border-2 border-white rounded-full"></div>
-          </div>
+        <section className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-primary/50 text-white py-16 sm:py-20 overflow-hidden">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <h1 className="font-montserrat text-5xl font-bold mb-6">Get In Touch</h1>
-              <p className="font-open-sans text-xl max-w-3xl mx-auto opacity-90">
+              <h1 className="font-montserrat text-3xl sm:text-4xl md:text-5xl font-bold mb-4">Get In Touch</h1>
+              <p className="text-white/70 text-base sm:text-lg max-w-2xl mx-auto">
                 Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
               </p>
             </motion.div>
@@ -39,65 +35,37 @@ const Contact = () => {
         </section>
 
         {/* Quick Contact Cards */}
-        <section className="py-8 -mt-10 relative z-20">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="bg-card p-5 rounded-xl shadow-lg text-center border border-border"
-              >
-                <div className="bg-green-500 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3 text-white">
-                  <Phone size={22} />
-                </div>
-                <h3 className="font-semibold text-sm mb-1">Call Us</h3>
-                <p className="text-xs text-muted-foreground">+254 700 123 456</p>
-              </motion.div>
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="bg-card p-5 rounded-xl shadow-lg text-center border border-border"
-              >
-                <div className="bg-blue-500 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3 text-white">
-                  <Mail size={22} />
-                </div>
-                <h3 className="font-semibold text-sm mb-1">Email</h3>
-                <p className="text-xs text-muted-foreground">info@tutorkenya.co.ke</p>
-              </motion.div>
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="bg-card p-5 rounded-xl shadow-lg text-center border border-border"
-              >
-                <div className="bg-purple-500 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3 text-white">
-                  <MapPin size={22} />
-                </div>
-                <h3 className="font-semibold text-sm mb-1">Location</h3>
-                <p className="text-xs text-muted-foreground">Nairobi, Kenya</p>
-              </motion.div>
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="bg-card p-5 rounded-xl shadow-lg text-center border border-border"
-              >
-                <div className="bg-orange-500 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3 text-white">
-                  <Clock size={22} />
-                </div>
-                <h3 className="font-semibold text-sm mb-1">Hours</h3>
-                <p className="text-xs text-muted-foreground">Mon-Sat: 8AM-6PM</p>
-              </motion.div>
+        <section className="py-6 -mt-8 relative z-20">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+              {[
+                { icon: <Phone size={20} />, title: 'Call Us', value: '+254 700 123 456', color: 'bg-green-500' },
+                { icon: <Mail size={20} />, title: 'Email', value: 'info@tutorke.co.ke', color: 'bg-blue-500' },
+                { icon: <MapPin size={20} />, title: 'Location', value: 'Nairobi, Kenya', color: 'bg-purple-500' },
+                { icon: <Clock size={20} />, title: 'Hours', value: 'Mon-Sat: 8AM-6PM', color: 'bg-orange-500' },
+              ].map((item, index) => (
+                <motion.div 
+                  key={item.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="bg-card p-4 sm:p-5 rounded-xl shadow-lg text-center border"
+                >
+                  <div className={`${item.color} w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center mx-auto mb-2 sm:mb-3 text-white`}>
+                    {item.icon}
+                  </div>
+                  <h3 className="font-semibold text-xs sm:text-sm mb-1">{item.title}</h3>
+                  <p className="text-xs text-muted-foreground">{item.value}</p>
+                </motion.div>
+              ))}
             </div>
           </div>
         </section>
 
         {/* Contact Content */}
-        <section className="py-16 bg-muted/30">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid lg:grid-cols-2 gap-12">
+        <section className="py-12 sm:py-16">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
               {/* WhatsApp & Info */}
               <motion.div 
                 initial={{ opacity: 0, x: -20 }}
