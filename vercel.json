@@ -3,6 +3,11 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
+  "build": {
+    "env": {
+      "NODE_VERSION": "18.x"
+    }
+  },
   "functions": {
     "api/*.js": {
       "runtime": "@vercel/node@3.0.0"
