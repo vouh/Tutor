@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { X, Phone, Loader2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { initiateSTKPush, queryPaymentStatus, isValidKenyanPhone } from '../lib/mpesa';
+import React, { useEffect, useState } from 'react';
+import { AlertCircle, CheckCircle, Loader2, Phone, X, XCircle } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { initiateSTKPush, isValidKenyanPhone, queryPaymentStatus } from './mpesa';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -20,7 +20,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   courseId,
   courseName,
   price,
-  onSuccess
+  onSuccess,
 }) => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [step, setStep] = useState<PaymentStep>('input');
@@ -28,7 +28,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const [checkoutRequestId, setCheckoutRequestId] = useState('');
   const [pollCount, setPollCount] = useState(0);
 
-  // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
       setStep('input');
@@ -38,15 +37,14 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     }
   }, [isOpen]);
 
-  // Poll for payment status
   useEffect(() => {
     if (step !== 'polling' || !checkoutRequestId) return;
 
     const pollInterval = setInterval(async () => {
-      setPollCount(prev => prev + 1);
-      
+      setPollCount((prev) => prev + 1);
+
       const result = await queryPaymentStatus(checkoutRequestId);
-      
+
       if (result.status === 'success') {
         setStep('success');
         clearInterval(pollInterval);
@@ -56,10 +54,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         setError(result.message);
         clearInterval(pollInterval);
       }
-      // If still pending, continue polling
     }, 5000);
 
-    // Stop polling after 2 minutes
     const timeout = setTimeout(() => {
       clearInterval(pollInterval);
       if (step === 'polling') {
@@ -89,7 +85,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       phoneNumber,
       amount: price,
       courseId,
-      courseName
+      courseName,
     });
 
     if (result.success && result.checkoutRequestId) {
@@ -106,7 +102,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-        {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -114,22 +109,20 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
           onClick={step === 'input' || step === 'failed' ? onClose : undefined}
           className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         />
-        
-        {/* Modal */}
+
         <motion.div
           initial={{ opacity: 0, scale: 0.9, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 20 }}
           className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden"
         >
-          {/* Header */}
           <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-6 text-white">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                  <img 
-                    src="/STK PUSH/public/images/mpesa.png" 
-                    alt="M-Pesa" 
+                  <img
+                    src="/STK PUSH/public/images/mpesa.png"
+                    alt="M-Pesa"
                     className="w-8 h-8 object-contain"
                     onError={(e) => {
                       e.currentTarget.style.display = 'none';
@@ -149,9 +142,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             </div>
           </div>
 
-          {/* Content */}
           <div className="p-6">
-            {/* Course Info */}
             <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 mb-6">
               <p className="text-sm text-slate-500 dark:text-slate-400">Paying for:</p>
               <p className="font-semibold text-slate-900 dark:text-white">{courseName}</p>
@@ -159,7 +150,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             </div>
 
             <AnimatePresence mode="wait">
-              {/* Input Step */}
               {step === 'input' && (
                 <motion.form
                   key="input"
@@ -205,7 +195,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 </motion.form>
               )}
 
-              {/* Processing Step */}
               {step === 'processing' && (
                 <motion.div
                   key="processing"
@@ -220,7 +209,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 </motion.div>
               )}
 
-              {/* Polling Step */}
               {step === 'polling' && (
                 <motion.div
                   key="polling"
@@ -233,9 +221,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                     <Phone size={32} className="text-green-600 animate-pulse" />
                   </div>
                   <h3 className="font-semibold text-lg text-slate-900 dark:text-white">Check Your Phone</h3>
-                  <p className="text-slate-500 text-sm mt-2">
-                    Enter your M-Pesa PIN to complete payment
-                  </p>
+                  <p className="text-slate-500 text-sm mt-2">Enter your M-Pesa PIN to complete payment</p>
                   <div className="mt-4 flex items-center justify-center gap-2 text-slate-400 text-sm">
                     <Loader2 size={14} className="animate-spin" />
                     Waiting for confirmation...
@@ -243,7 +229,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 </motion.div>
               )}
 
-              {/* Success Step */}
               {step === 'success' && (
                 <motion.div
                   key="success"
@@ -256,9 +241,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                     <CheckCircle size={40} className="text-green-600" />
                   </div>
                   <h3 className="font-bold text-xl text-green-600">Payment Successful!</h3>
-                  <p className="text-slate-500 text-sm mt-2">
-                    You now have access to {courseName}
-                  </p>
+                  <p className="text-slate-500 text-sm mt-2">You now have access to {courseName}</p>
                   <button
                     onClick={onClose}
                     className="mt-6 bg-green-600 text-white px-8 py-3 rounded-xl font-semibold hover:bg-green-700 transition-colors"
@@ -268,7 +251,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 </motion.div>
               )}
 
-              {/* Failed Step */}
               {step === 'failed' && (
                 <motion.div
                   key="failed"
@@ -301,4 +283,4 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   );
 };
 
-export { default } from '../features/payments/PaymentModal';
+export default PaymentModal;
