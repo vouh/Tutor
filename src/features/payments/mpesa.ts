@@ -2,9 +2,12 @@
 // Default: calls same-origin `/api/*` (works on Vercel).
 // Optional: set `VITE_API_BASE_URL` to point to another host (e.g. Render) and we will call `${VITE_API_BASE_URL}/api/*`.
 
-const API_ORIGIN = (import.meta as any).env?.VITE_API_BASE_URL
-	? String((import.meta as any).env.VITE_API_BASE_URL).replace(/\/+$/, '')
-	: '';
+const API_ORIGIN =
+	(typeof import.meta !== 'undefined' &&
+		typeof import.meta.env !== 'undefined' &&
+		import.meta.env.VITE_API_BASE_URL)
+		? String(import.meta.env.VITE_API_BASE_URL).replace(/\/+$/, '')
+		: '';
 
 const API_BASE = `${API_ORIGIN}/api`;
 
@@ -103,7 +106,7 @@ export async function queryPaymentStatus(checkoutRequestId: string): Promise<Que
 }
 
 export function formatPhoneNumber(phone: string): string {
-	let cleaned = phone.replace(/[\s\-\(\)]/g, '');
+	let cleaned = phone.replace(/[\s()-]/g, '');
 
 	if (cleaned.startsWith('+')) {
 		cleaned = cleaned.substring(1);

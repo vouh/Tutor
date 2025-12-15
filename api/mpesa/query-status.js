@@ -1,5 +1,7 @@
 import axios from 'axios';
 import { getAccessToken, getTimeStamp, corsHeaders } from './_utils.js';
+import { readEnv } from '../_core/env.js';
+import { badRequest, methodNotAllowed, serverError } from '../_core/response.js';
 
 export default async function handler(req, res) {
 	Object.entries(corsHeaders()).forEach(([key, value]) => {
@@ -11,21 +13,21 @@ export default async function handler(req, res) {
 	}
 
 	if (req.method !== 'POST') {
-		return res.status(405).json({ error: 'Method not allowed' });
+		return methodNotAllowed(res);
 	}
 
 	try {
 		const { checkoutRequestId } = req.body;
 
 		if (!checkoutRequestId) {
-			return res.status(400).json({ error: 'checkoutRequestId is required' });
+			return badRequest(res, 'checkoutRequestId is required');
 		}
 
 		const access_token = await getAccessToken();
 		const timestamp = getTimeStamp();
 
-		const BusinessShortCode = String(process.env.BusinessShortCode || '').trim();
-		const MPESA_PASSKEY = String(process.env.MPESA_PASSKEY || '').trim();
+		const BusinessShortCode = readEnv('BusinessShortCode');
+		const MPESA_PASSKEY = readEnv('MPESA_PASSKEY');
 
 		const password = Buffer.from(`${BusinessShortCode}${MPESA_PASSKEY}${timestamp}`).toString('base64');
 
@@ -89,10 +91,10 @@ export default async function handler(req, res) {
 			});
 		}
 
-		return res.status(500).json({
-			success: false,
-			status: 'error',
-			message: error.response?.data?.errorMessage || 'Failed to query transaction status',
-		});
+		const message =
+			error?.code === 'MISSING_ENV'
+				? 'Server configuration error'
+				: error.response?.data?.errorMessage || 'Failed to query transaction status';
+		return serverError(res, message);
 	}
 }

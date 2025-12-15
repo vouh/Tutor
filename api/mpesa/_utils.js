@@ -1,14 +1,12 @@
 import axios from 'axios';
+import { corsHeaders as coreCorsHeaders } from '../_core/cors.js';
+import { readEnv } from '../_core/env.js';
 
 const url = 'https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials';
 
 export async function getAccessToken() {
-	const CONSUMER_KEY = String(process.env.CONSUMER_KEY || '').trim();
-	const CONSUMER_SECRET = String(process.env.CONSUMER_SECRET || '').trim();
-
-	if (!CONSUMER_KEY || !CONSUMER_SECRET) {
-		throw new Error('Missing CONSUMER_KEY or CONSUMER_SECRET');
-	}
+	const CONSUMER_KEY = readEnv('CONSUMER_KEY');
+	const CONSUMER_SECRET = readEnv('CONSUMER_SECRET');
 
 	const result = await axios.get(url, {
 		auth: { username: CONSUMER_KEY, password: CONSUMER_SECRET },
@@ -30,9 +28,5 @@ export function getTimeStamp() {
 }
 
 export function corsHeaders() {
-	return {
-		'Access-Control-Allow-Origin': '*',
-		'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-		'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-	};
+	return coreCorsHeaders();
 }

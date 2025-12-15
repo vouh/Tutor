@@ -1,5 +1,7 @@
 import axios from 'axios';
 import { getAccessToken, getTimeStamp, corsHeaders } from './_utils.js';
+import { getBaseUrl, readEnv } from '../_core/env.js';
+import { badRequest, methodNotAllowed, serverError } from '../_core/response.js';
 
 export default async function handler(req, res) {
 	if (req.method === 'OPTIONS') {
@@ -14,44 +16,33 @@ export default async function handler(req, res) {
 	});
 
 	if (req.method !== 'POST') {
-		return res.status(405).json({ error: 'Method not allowed' });
+		return methodNotAllowed(res);
 	}
 
 	try {
 		const { phoneNumber, amount = '1', courseId, courseName } = req.body;
 
 		if (!phoneNumber) {
-			return res.status(400).json({ error: 'Phone number is required' });
+			return badRequest(res, 'Phone number is required');
 		}
 
 		const cleanNumber = phoneNumber.replace(/\s+/g, '').replace(/^0/, '').replace(/^\+254/, '');
 		const formattedPhone = `254${cleanNumber}`;
 
 		if (!/^254[17]\d{8}$/.test(formattedPhone)) {
-			return res.status(400).json({ error: 'Invalid phone number format. Use format: 07XXXXXXXX or 01XXXXXXXX' });
+			return badRequest(res, 'Invalid phone number format. Use format: 07XXXXXXXX or 01XXXXXXXX');
 		}
 
 		const access_token = await getAccessToken();
 		const timestamp = getTimeStamp();
 
-		const BusinessShortCode = String(process.env.BusinessShortCode || '').trim();
-		const MPESA_PASSKEY = String(process.env.MPESA_PASSKEY || '').trim();
-		const TILL_NUMBER = String(process.env.TILL_NUMBER || '').trim();
-
-		if (!BusinessShortCode || !MPESA_PASSKEY || !TILL_NUMBER) {
-			console.error('Missing env vars:', {
-				BusinessShortCode: !!BusinessShortCode,
-				MPESA_PASSKEY: !!MPESA_PASSKEY,
-				TILL_NUMBER: !!TILL_NUMBER,
-			});
-			return res.status(500).json({ success: false, message: 'Server configuration error' });
-		}
+		const BusinessShortCode = readEnv('BusinessShortCode');
+		const MPESA_PASSKEY = readEnv('MPESA_PASSKEY');
+		const TILL_NUMBER = readEnv('TILL_NUMBER');
 
 		const password = Buffer.from(`${BusinessShortCode}${MPESA_PASSKEY}${timestamp}`).toString('base64');
 
-		const domain = process.env.VERCEL_URL
-			? `https://${process.env.VERCEL_URL}`
-			: process.env.DOMAIN || 'https://tu-tor.vercel.app';
+		const domain = getBaseUrl(req);
 
 		const accountReference = courseName ? courseName.substring(0, 20) : 'TutorKE Course';
 		const transactionDesc = `Pay for ${courseName || 'course'}`.substring(0, 30);
@@ -104,15 +95,13 @@ export default async function handler(req, res) {
 		console.error('STK Push Error:', error.response?.data || error.message);
 
 		const errorMessage =
-			error.response?.data?.errorMessage ||
-			error.response?.data?.error ||
-			error.message ||
-			'Payment request failed';
+			error?.code === 'MISSING_ENV'
+				? 'Server configuration error'
+				: error.response?.data?.errorMessage ||
+					error.response?.data?.error ||
+					error.message ||
+					'Payment request failed';
 
-		return res.status(500).json({
-			success: false,
-			message: errorMessage,
-			error: errorMessage,
-		});
+		return serverError(res, errorMessage);
 	}
 }
