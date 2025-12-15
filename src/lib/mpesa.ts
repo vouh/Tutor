@@ -1,7 +1,24 @@
 // M-Pesa STK Push Service
-// Uses the Vercel serverless API endpoints
+// Default: calls same-origin `/api/*` (works on Vercel).
+// Optional: set `VITE_API_BASE_URL` to point to another host (e.g. Render) and we will call `${VITE_API_BASE_URL}/api/*`.
 
-const API_BASE = '/api';
+const API_ORIGIN = (import.meta as any).env?.VITE_API_BASE_URL
+  ? String((import.meta as any).env.VITE_API_BASE_URL).replace(/\/+$/, '')
+  : '';
+
+const API_BASE = `${API_ORIGIN}/api`;
+
+async function parseResponse(response: Response) {
+  const contentType = response.headers.get('content-type') || '';
+  const isJson = contentType.includes('application/json');
+
+  if (isJson) {
+    return response.json();
+  }
+
+  const text = await response.text();
+  return { success: false, message: text || `Request failed (${response.status})` };
+}
 
 export interface STKPushRequest {
   phoneNumber: string;
@@ -36,8 +53,16 @@ export async function initiateSTKPush(data: STKPushRequest): Promise<STKPushResp
       body: JSON.stringify(data),
     });
 
-    const result = await response.json();
-    return result;
+    const result = await parseResponse(response);
+    if (!response.ok) {
+      return {
+        success: false,
+        message: result?.message || result?.error || `Failed to initiate payment (${response.status})`,
+        error: result?.error || undefined,
+      };
+    }
+
+    return result as STKPushResponse;
   } catch (error) {
     console.error('STK Push Error:', error);
     return {
@@ -59,8 +84,16 @@ export async function queryPaymentStatus(checkoutRequestId: string): Promise<Que
       body: JSON.stringify({ checkoutRequestId }),
     });
 
-    const result = await response.json();
-    return result;
+    const result = await parseResponse(response);
+    if (!response.ok) {
+      return {
+        success: false,
+        status: 'error',
+        message: result?.message || result?.error || `Failed to check payment status (${response.status})`,
+      };
+    }
+
+    return result as QueryStatusResponse;
   } catch (error) {
     console.error('Query Status Error:', error);
     return {

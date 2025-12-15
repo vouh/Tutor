@@ -107,11 +107,16 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('STK Push Error:', error.response?.data || error.message);
-    
-    const errorMessage = error.response?.data?.errorMessage || error.message || 'Payment request failed';
-    
+
+    const errorMessage =
+      error.response?.data?.errorMessage ||
+      error.response?.data?.error ||
+      error.message ||
+      'Payment request failed';
+
     return res.status(500).json({
       success: false,
+      message: errorMessage,
       error: errorMessage
     });
   }
