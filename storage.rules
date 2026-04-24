@@ -1,0 +1,47 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.admin == true;
+    }
+    
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Profile photos - owner can read/write, only authenticated users
+    match /profiles/{userId}/{allFiles=**} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId) && request.resource.size < 5 * 1024 * 1024;
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    // Thumbnails - admin uploads, all authenticated users can read
+    match /thumbnails/{courseId}/{allFiles=**} {
+      allow read: if isSignedIn();
+      allow write, delete: if isAdmin();
+    }
+
+    // Videos - admin uploads, authenticated enrolled users can read
+    match /videos/{courseId}/{allFiles=**} {
+      allow read: if isSignedIn();
+      allow write, delete: if isAdmin();
+    }
+
+    // Lesson attachments - admin uploads, enrolled users can read
+    match /attachments/{courseId}/{allFiles=**} {
+      allow read: if isSignedIn();
+      allow write, delete: if isAdmin();
+    }
+
+    // Deny all other paths
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

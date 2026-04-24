@@ -4,6 +4,8 @@ import { Menu, X, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AuthModal from './AuthModal';
 import tutorLogo from '../assets/tutor_logo.png';
+import tutorLogoLight from '../assets/tutor_logo_light.png';
+import SiteSearch from './SiteSearch';
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -41,6 +43,9 @@ const Header = () => {
 
   // Determine text colors based on scroll and page
   const showSolidBg = scrolled || needsSolidBg;
+  const isHomePage = location.pathname === '/';
+  const isDarkHeroHeader = isHomePage && !showSolidBg;
+  const activeLogo = isDarkHeroHeader ? tutorLogoLight : tutorLogo;
 
   return (
     <>
@@ -56,7 +61,7 @@ const Header = () => {
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 group">
               <img
-                src={tutorLogo}
+                src={activeLogo}
                 alt="TutorKE logo"
                 className={`w-16 h-16 rounded-xl object-cover transition-all duration-300 ${
                   showSolidBg ? 'opacity-100' : 'opacity-90 drop-shadow-lg'
@@ -91,6 +96,12 @@ const Header = () => {
 
             {/* Right Actions */}
             <div className="hidden md:flex items-center gap-2">
+              <SiteSearch
+                placeholder="Search site..."
+                className="hidden lg:block w-72"
+                darkMode={!showSolidBg}
+              />
+
               {/* Login Button */}
               <button 
                 onClick={() => openAuth('login')}

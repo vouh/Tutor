@@ -1,19 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Brain, Code, Heart, Users, TrendingUp, Wallet, Palette, Dumbbell, Sparkles, ArrowRight, Mic } from 'lucide-react';
+import { Brain, Code, Heart, Users, TrendingUp, Wallet, Palette, Dumbbell } from 'lucide-react';
 import { motion } from 'framer-motion';
+import SiteSearch from './SiteSearch';
 
 const HeroSection = () => {
-  const [searchQuery, setSearchQuery] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const navigate = useNavigate();
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/courses?search=${encodeURIComponent(searchQuery)}`);
-    }
-  };
 
   const categories = [
     { icon: <Brain size={20} />, label: 'AI & Tech', color: 'from-blue-500 to-cyan-500' },
@@ -103,41 +96,18 @@ const HeroSection = () => {
           />
           
           {/* Search Container */}
-          <form onSubmit={handleSearch} className="relative">
-            <motion.div
-              animate={{ scale: isFocused ? 1.01 : 1 }}
-              transition={{ duration: 0.2 }}
-              className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden"
-            >
-              <div className="flex items-center">
-                <div className="pl-4 sm:pl-5">
-                  <Search size={20} className="text-gray-400" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="What do you want to learn today?"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onFocus={() => setIsFocused(true)}
-                  onBlur={() => setIsFocused(false)}
-                  className="flex-1 py-4 px-3 sm:px-4 text-sm sm:text-base bg-transparent border-none outline-none placeholder:text-gray-400 text-gray-800 dark:text-white"
-                />
-                <button
-                  type="button"
-                  className="p-2 text-gray-400 hover:text-primary transition-colors hidden sm:block"
-                >
-                  <Mic size={18} />
-                </button>
-                <button
-                  type="submit"
-                  className="m-1.5 sm:m-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-primary to-accent text-white text-sm font-semibold rounded-xl hover:shadow-lg transition-all duration-300 flex items-center gap-2"
-                >
-                  <span className="hidden sm:inline">Search</span>
-                  <ArrowRight size={16} />
-                </button>
-              </div>
-            </motion.div>
-          </form>
+          <motion.div
+            animate={{ scale: isFocused ? 1.01 : 1 }}
+            transition={{ duration: 0.2 }}
+            onFocusCapture={() => setIsFocused(true)}
+            onBlurCapture={() => setIsFocused(false)}
+            className="relative"
+          >
+            <SiteSearch
+              placeholder="What do you want to learn today?"
+              className="w-full"
+            />
+          </motion.div>
 
           {/* Search Tags */}
           <motion.div
