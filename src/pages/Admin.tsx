@@ -25,6 +25,7 @@ import {
   ChevronDown
 } from "lucide-react";
 import { motion, AnimatePresence } from 'framer-motion';
+import tutorLogo from '../assets/tutor_logo.png';
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -417,7 +418,7 @@ const Admin = () => {
       {/* Sidebar */}
       <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-card border-r transition-all duration-300 fixed h-full z-40`}>
         <div className="p-4 border-b flex items-center justify-between">
-          {sidebarOpen && <h1 className="font-bold text-xl">Tutor Admin</h1>}
+          <img src={tutorLogo} alt="TutorKE logo" className="w-12 h-12 rounded-xl object-cover" />
           <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)}>
             <Menu size={20} />
           </Button>

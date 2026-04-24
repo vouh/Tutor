@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, User, BookOpen, Search } from 'lucide-react';
+import { Menu, X, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AuthModal from './AuthModal';
+import tutorLogo from '../assets/tutor_logo.png';
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -54,14 +55,13 @@ const Header = () => {
           <div className="flex items-center justify-between h-12">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 group">
-              <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center shadow-lg">
-                <BookOpen className="text-white" size={18} />
-              </div>
-              <span className={`font-montserrat font-bold text-lg transition-colors ${
-                showSolidBg ? 'text-slate-900 dark:text-white' : 'text-white'
-              }`}>
-                Tutor<span className="text-primary">KE</span>
-              </span>
+              <img
+                src={tutorLogo}
+                alt="TutorKE logo"
+                className={`w-16 h-16 rounded-xl object-cover transition-all duration-300 ${
+                  showSolidBg ? 'opacity-100' : 'opacity-90 drop-shadow-lg'
+                }`}
+              />
             </Link>
 
             {/* Desktop Navigation */}
