@@ -4,18 +4,37 @@ import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCtqJfGuG5UGUqye1wygn6Q26pX8mlaJjg",
-  authDomain: "tutor-36ee7.firebaseapp.com",
-  projectId: "tutor-36ee7",
-  storageBucket: "tutor-36ee7.firebasestorage.app",
-  messagingSenderId: "848084214658",
-  appId: "1:848084214658:web:cf80100245bc786c7ee59b",
-  measurementId: "G-856H1GDJWE"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
+
+const requiredFirebaseEnvVars = [
+  ["VITE_FIREBASE_API_KEY", firebaseConfig.apiKey],
+  ["VITE_FIREBASE_AUTH_DOMAIN", firebaseConfig.authDomain],
+  ["VITE_FIREBASE_PROJECT_ID", firebaseConfig.projectId],
+  ["VITE_FIREBASE_STORAGE_BUCKET", firebaseConfig.storageBucket],
+  ["VITE_FIREBASE_MESSAGING_SENDER_ID", firebaseConfig.messagingSenderId],
+  ["VITE_FIREBASE_APP_ID", firebaseConfig.appId],
+] as const;
+
+const missingFirebaseEnvVars = requiredFirebaseEnvVars
+  .filter(([, value]) => !value)
+  .map(([name]) => name);
+
+if (missingFirebaseEnvVars.length > 0) {
+  throw new Error(
+    `Missing Firebase environment variables: ${missingFirebaseEnvVars.join(", ")}`
+  );
+}
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+const analytics = firebaseConfig.measurementId ? getAnalytics(app) : undefined;
 const db = getFirestore(app);
 const auth = getAuth(app);
 
