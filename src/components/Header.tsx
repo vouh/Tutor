@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import AuthModal from './AuthModal';
 import tutorLogo from '../assets/tutor_logo.png';
 import tutorLogoLight from '../assets/tutor_logo_light.png';
-import SiteSearch from './SiteSearch';
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -96,12 +95,6 @@ const Header = () => {
 
             {/* Right Actions */}
             <div className="hidden md:flex items-center gap-2">
-              <SiteSearch
-                placeholder="Search site..."
-                className="hidden lg:block w-72"
-                darkMode={!showSolidBg}
-              />
-
               {/* Login Button */}
               <button 
                 onClick={() => openAuth('login')}
