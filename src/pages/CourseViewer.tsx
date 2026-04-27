@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { GlobalWorkerOptions, getDocument } from "pdfjs-dist";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
@@ -46,12 +46,12 @@ export default function CourseViewer() {
 
         if (nextActive && userId !== "guest") {
           const payment = await getPaymentForModule(userId, id, nextActive.id || "");
-          setPaymentGate(Boolean(payment) || nextActive.isFree || nextActive.type === "text");
+          setPaymentGate(Boolean(payment) || nextActive.isFree);
           const progress = await getCourseProgress(userId, id);
           setCourseProgress(progress?.percentComplete || 0);
           setCompletedIds(progress?.completedModuleIds || []);
         } else {
-          setPaymentGate(Boolean(nextActive?.isFree || nextActive?.type === "text"));
+          setPaymentGate(Boolean(nextActive?.isFree));
         }
       })
       .catch(() => toast.error("Unable to load course"));
@@ -92,7 +92,6 @@ export default function CourseViewer() {
   }, [activeModule]);
 
   const isCompleted = activeModule?.id ? completedIds.includes(activeModule.id) : false;
-  const activeModuleIndex = useMemo(() => modules.findIndex((module) => module.id === activeModule?.id), [activeModule, modules]);
 
   const openModule = (module: ModuleRecord) => {
     if (!id || !module.id) return;
@@ -120,9 +119,15 @@ export default function CourseViewer() {
       const phoneNumber = window.prompt("Enter your M-Pesa phone number") || "";
       if (!phoneNumber) return;
 
+      const payableAmount = activeModule.isFree ? 0 : Number(activeModule.price || course.price || 0);
+      if (payableAmount <= 0) {
+        toast.error("Missing valid price for this module");
+        return;
+      }
+
       const result = await initiateSTKPush({
         phoneNumber,
-        amount: course.price,
+        amount: payableAmount,
         courseId: course.id,
         courseName: course.title,
       });
@@ -156,7 +161,7 @@ export default function CourseViewer() {
         userEmail: auth.currentUser?.email || undefined,
         courseId: course.id || "",
         moduleId: activeModule.id,
-        amount: course.price,
+        amount: payableAmount,
         mpesaReceiptNumber: result.checkoutRequestId,
         status: "completed",
         paidAt: null,
@@ -200,7 +205,7 @@ export default function CourseViewer() {
             <div className="space-y-1">
               {modules.map((module) => {
                 const active = module.id === activeModule?.id;
-                const unlocked = module.isFree || module.type === "text" || (active && paymentGate);
+                const unlocked = module.isFree || (active && paymentGate);
                 return (
                   <button
                     key={module.id}
@@ -241,10 +246,17 @@ export default function CourseViewer() {
             <div className="mx-auto grid max-w-6xl gap-6 xl:grid-cols-[1fr,280px]">
               <section className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm print:border-0 print:shadow-none">
                 {activeModule?.type === "text" ? (
-                  <article className="prose prose-slate max-w-none prose-headings:font-bold prose-a:text-primary prose-pre:bg-slate-950 prose-pre:text-white">
-                    <h1>{activeModule.title}</h1>
-                    <div dangerouslySetInnerHTML={{ __html: activeModule.content }} />
-                  </article>
+                  paymentGate || activeModule.isFree ? (
+                    <article className="prose prose-slate max-w-none prose-headings:font-bold prose-a:text-primary prose-pre:bg-slate-950 prose-pre:text-white">
+                      <h1>{activeModule.title}</h1>
+                      <div dangerouslySetInnerHTML={{ __html: activeModule.content }} />
+                    </article>
+                  ) : (
+                    <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5 text-sm text-slate-700">
+                      <p className="font-semibold text-slate-900">This Type A module is paid</p>
+                      <p className="mt-1">Complete payment to unlock the lesson content.</p>
+                    </div>
+                  )
                 ) : activeModule?.type === "pdf" ? (
                   <div className="space-y-4">
                     <div ref={pdfContainerRef} className="max-h-[72vh] overflow-y-auto rounded-2xl bg-slate-50 p-4" />
@@ -272,7 +284,7 @@ export default function CourseViewer() {
 
                 <Card className="rounded-[1.5rem] border-slate-200 bg-white p-5 shadow-sm">
                   <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Course info</p>
-                  <p className="mt-3 text-lg font-bold text-slate-900">KES {Number(course.price || 0).toLocaleString()}</p>
+                  <p className="mt-3 text-lg font-bold text-slate-900">KES {Number(activeModule?.price || course.price || 0).toLocaleString()}</p>
                   <p className="mt-2 text-sm text-slate-600">{course.description}</p>
                   <Link to="/courses" className="mt-4 inline-flex text-sm font-semibold text-primary">Back to course catalog</Link>
                 </Card>

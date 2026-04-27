@@ -4,8 +4,8 @@ import { CheckCircle2, CircleOff, Edit3, Loader2, Plus, Search, Trash2 } from "l
 import { toast } from "sonner";
 import { Timestamp } from "firebase/firestore";
 import { Card } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { deleteCourse, getCourses, saveCourse, toggleCoursePublished, type CourseLevel, type CourseRecord, uploadCourseThumbnail } from "@/lib/adminData";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { deleteCourse, getCourses, saveCourse, toggleCoursePublished, type CourseLevel, type CourseRecord } from "@/lib/adminData";
 
 const levels: CourseLevel[] = ["Beginner", "Intermediate", "Advanced"];
 
@@ -57,8 +57,6 @@ export default function AdminCourses() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<CourseFormState>(emptyForm);
   const [saving, setSaving] = useState(false);
-  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState<CourseRecord | null>(null);
   const [publishBusyId, setPublishBusyId] = useState<string | null>(null);
 
@@ -91,25 +89,20 @@ export default function AdminCourses() {
 
   const startCreate = () => {
     setForm(emptyForm);
-    setThumbnailFile(null);
-    setUploadProgress(0);
     setDialogOpen(true);
   };
 
   const startEdit = (course: CourseRecord) => {
     setForm(toForm(course));
-    setThumbnailFile(null);
-    setUploadProgress(0);
     setDialogOpen(true);
   };
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      let thumbnailUrl = form.thumbnailUrl;
-      if (thumbnailFile) {
-        const courseId = form.id || `temp-${Date.now()}`;
-        thumbnailUrl = await uploadCourseThumbnail(courseId, thumbnailFile, setUploadProgress);
+      if (!form.title.trim()) {
+        toast.error("Course title is required");
+        return;
       }
 
       const savedId = await saveCourse({
@@ -121,19 +114,17 @@ export default function AdminCourses() {
         price: Number(form.price || 0),
         isFree: form.isFree,
         isPublished: form.isPublished,
-        thumbnailUrl,
+        thumbnailUrl: form.thumbnailUrl,
         publishedAt: form.isPublished ? Timestamp.now() : null,
       });
 
       toast.success(form.id ? "Course updated" : "Course created");
       setDialogOpen(false);
       setForm(emptyForm);
-      setThumbnailFile(null);
-      setUploadProgress(0);
       await loadCourses();
       navigate(`/admin/courses/${savedId}/modules`);
     } catch {
-      toast.error("Failed to save course");
+      toast.error("Failed to save course. Check Firestore permissions and republished rules.");
     } finally {
       setSaving(false);
     }
@@ -275,10 +266,6 @@ export default function AdminCourses() {
               <label className="mb-2 block text-sm font-medium text-slate-700">Price (KES)</label>
               <input value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} type="number" className="w-full rounded-2xl border border-slate-200 px-4 py-3" />
             </div>
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">Thumbnail</label>
-              <input type="file" accept="image/*" onChange={(event) => setThumbnailFile(event.target.files?.[0] || null)} className="w-full rounded-2xl border border-slate-200 px-4 py-2" />
-            </div>
             <div className="md:col-span-2">
               <label className="mb-2 block text-sm font-medium text-slate-700">Description</label>
               <textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} rows={5} className="w-full rounded-2xl border border-slate-200 px-4 py-3" />
@@ -290,8 +277,6 @@ export default function AdminCourses() {
               <input type="checkbox" checked={form.isPublished} onChange={(event) => setForm({ ...form, isPublished: event.target.checked })} /> Published
             </label>
           </div>
-
-          {thumbnailFile ? <div className="space-y-2 rounded-2xl bg-slate-50 p-4 text-sm text-slate-600"><p>Thumbnail upload progress</p><div className="h-2 overflow-hidden rounded-full bg-slate-200"><div className="h-full rounded-full bg-primary transition-all" style={{ width: `${uploadProgress}%` }} /></div></div> : null}
 
           <div className="flex justify-end gap-3">
             <button onClick={() => setDialogOpen(false)} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700">Cancel</button>
@@ -307,6 +292,9 @@ export default function AdminCourses() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Delete course?</DialogTitle>
+            <DialogDescription>
+              This action permanently removes the course and related records.
+            </DialogDescription>
           </DialogHeader>
           <p className="text-sm text-slate-600">This removes the course, its modules, and related payment records.</p>
           <div className="flex justify-end gap-3">

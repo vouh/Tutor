@@ -39,10 +39,12 @@ export interface CourseRecord {
 export interface ModuleRecord {
   id?: string;
   title: string;
+  description?: string;
   type: ModuleType;
   courseId: string;
   order: number;
   isFree: boolean;
+  price?: number;
   content: string;
   pdfUrl: string;
   createdAt?: Timestamp;
@@ -197,7 +199,7 @@ export async function getModule(moduleId: string) {
   return snapshot.exists() ? ({ id: snapshot.id, ...snapshot.data() } as ModuleRecord) : null;
 }
 
-export async function saveModule(moduleData: Partial<ModuleRecord> & { title: string; type: ModuleType; courseId: string; order: number; isFree: boolean; content: string; pdfUrl: string; }) {
+export async function saveModule(moduleData: Partial<ModuleRecord> & { title: string; type: ModuleType; courseId: string; order: number; isFree: boolean; price?: number; description?: string; content: string; pdfUrl: string; }) {
   const payload = {
     ...moduleData,
     updatedAt: serverTimestamp(),

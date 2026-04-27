@@ -27,6 +27,7 @@ import { analytics } from "./lib/firebase";
 import { AdminAuthProvider } from "./contexts/AdminAuthContext";
 import { RequireAdmin } from "./components/admin/RequireAdmin";
 import { AdminLayout } from "./components/admin/AdminLayout";
+import { ThemeProvider } from "./components/theme-provider";
 
 const queryClient = new QueryClient();
 
@@ -39,42 +40,44 @@ const App = () => {
   <QueryClientProvider client={queryClient}>
     <HelmetProvider>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <AdminAuthProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/courses" element={<Courses />} />
-              <Route path="/course/:id" element={<CourseDetail />} />
-              <Route path="/courses/:id" element={<CourseViewer />} />
-              <Route path="/courses/:id/:moduleId" element={<CourseViewer />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/admin/login" element={<AdminLogin />} />
-              <Route
-                path="/admin"
-                element={
-                  <RequireAdmin>
-                    <AdminLayout />
-                  </RequireAdmin>
-                }
-              >
-                <Route index element={<Navigate to="dashboard" replace />} />
-                <Route path="dashboard" element={<AdminDashboard />} />
-                <Route path="courses" element={<AdminCourses />} />
-                <Route path="modules" element={<AdminModules />} />
-                <Route path="courses/:id/modules" element={<AdminCourseModules />} />
-                <Route path="users" element={<AdminUsers />} />
-                <Route path="payments" element={<AdminPayments />} />
-              </Route>
-              <Route path="/terms" element={<Terms />} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/search" element={<SearchResults />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </AdminAuthProvider>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+          <Toaster />
+          <Sonner />
+          <AdminAuthProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/courses" element={<Courses />} />
+                <Route path="/course/:id" element={<CourseDetail />} />
+                <Route path="/courses/:id" element={<CourseViewer />} />
+                <Route path="/courses/:id/:moduleId" element={<CourseViewer />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/admin/login" element={<AdminLogin />} />
+                <Route
+                  path="/admin"
+                  element={
+                    <RequireAdmin>
+                      <AdminLayout />
+                    </RequireAdmin>
+                  }
+                >
+                  <Route index element={<Navigate to="dashboard" replace />} />
+                  <Route path="dashboard" element={<AdminDashboard />} />
+                  <Route path="courses" element={<AdminCourses />} />
+                  <Route path="modules" element={<AdminModules />} />
+                  <Route path="courses/:id/modules" element={<AdminCourseModules />} />
+                  <Route path="users" element={<AdminUsers />} />
+                  <Route path="payments" element={<AdminPayments />} />
+                </Route>
+                <Route path="/terms" element={<Terms />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/search" element={<SearchResults />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </AdminAuthProvider>
+        </ThemeProvider>
       </TooltipProvider>
     </HelmetProvider>
   </QueryClientProvider>

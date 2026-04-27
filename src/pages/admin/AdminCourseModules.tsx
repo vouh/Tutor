@@ -5,25 +5,29 @@ import "react-quill/dist/quill.snow.css";
 import { ArrowLeft, GripVertical, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { deleteModule, getCourse, getModules, reorderModules, saveModule, uploadModulePdf, type CourseRecord, type ModuleRecord, type ModuleType } from "@/lib/adminData";
 
 
 type ModuleFormState = {
   id?: string;
   title: string;
+  description: string;
   type: ModuleType;
   order: number;
   isFree: boolean;
+  price: string;
   content: string;
   pdfUrl: string;
 };
 
 const emptyForm: ModuleFormState = {
   title: "",
+  description: "",
   type: "text",
   order: 1,
   isFree: false,
+  price: "",
   content: "",
   pdfUrl: "",
 };
@@ -33,9 +37,11 @@ function toForm(module?: ModuleRecord, fallbackOrder = 1): ModuleFormState {
     ? {
         id: module.id,
         title: module.title,
+        description: module.description || "",
         type: module.type,
         order: module.order,
         isFree: module.isFree,
+        price: module.price ? String(module.price) : "",
         content: module.content,
         pdfUrl: module.pdfUrl,
       }
@@ -95,19 +101,36 @@ export default function AdminCourseModules() {
     if (!courseId) return;
     setSaving(true);
     try {
+      if (!form.title.trim()) {
+        toast.error("Module title is required");
+        return;
+      }
+
+      if (!form.isFree && (!form.price || Number(form.price) <= 0)) {
+        toast.error("Set a valid module price for paid modules");
+        return;
+      }
+
       let pdfUrl = form.pdfUrl;
       if (form.type === "pdf" && pdfFile) {
         const moduleId = form.id || `temp-${Date.now()}`;
         pdfUrl = await uploadModulePdf(courseId, moduleId, pdfFile, setUploadProgress);
       }
 
+      if (form.type === "pdf" && !pdfUrl) {
+        toast.error("Upload a PDF file for Type B modules");
+        return;
+      }
+
       await saveModule({
         id: form.id,
         title: form.title,
+        description: form.description,
         type: form.type,
         courseId,
         order: form.order,
         isFree: form.isFree,
+        price: form.isFree ? 0 : Number(form.price),
         content: form.content,
         pdfUrl,
       });
@@ -210,12 +233,19 @@ export default function AdminCourseModules() {
         <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-4xl">
           <DialogHeader>
             <DialogTitle>{form.id ? "Edit module" : "Create module"}</DialogTitle>
+            <DialogDescription>
+              Type A is text content. Type B is a PDF upload with optional notes.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="md:col-span-2">
               <label className="mb-2 block text-sm font-medium text-slate-700">Title</label>
               <input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} className="w-full rounded-2xl border border-slate-200 px-4 py-3" />
+            </div>
+            <div className="md:col-span-2">
+              <label className="mb-2 block text-sm font-medium text-slate-700">Description (optional)</label>
+              <textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} rows={3} className="w-full rounded-2xl border border-slate-200 px-4 py-3" />
             </div>
             <div>
               <label className="mb-2 block text-sm font-medium text-slate-700">Type</label>
@@ -231,6 +261,12 @@ export default function AdminCourseModules() {
             <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
               <input type="checkbox" checked={form.isFree} onChange={(event) => setForm({ ...form, isFree: event.target.checked })} /> Free preview
             </label>
+            {!form.isFree ? (
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">Price (KES)</label>
+                <input type="number" min={1} value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} className="w-full rounded-2xl border border-slate-200 px-4 py-3" />
+              </div>
+            ) : null}
           </div>
 
           {form.type === "text" ? (
@@ -267,6 +303,9 @@ export default function AdminCourseModules() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Delete module?</DialogTitle>
+            <DialogDescription>
+              This will permanently remove the selected module.
+            </DialogDescription>
           </DialogHeader>
           <p className="text-sm text-slate-600">This action cannot be undone.</p>
           <div className="flex justify-end gap-3">
