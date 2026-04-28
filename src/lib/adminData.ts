@@ -121,7 +121,10 @@ async function uploadFile(file: File, path: string, onProgress?: (progress: numb
         const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
         onProgress?.(Math.round(progress));
       },
-      reject,
+      (err) => {
+        console.error("[adminData] uploadFile failed", err);
+        reject(err);
+      },
       async () => {
         resolve(await getDownloadURL(task.snapshot.ref));
       }
@@ -149,10 +152,16 @@ export async function getCourse(courseId: string) {
 
 export async function saveCourse(course: Partial<CourseRecord> & { title: string; description: string; category: string; level: CourseLevel; price: number; isFree: boolean; isPublished: boolean; thumbnailUrl: string; publishedAt?: Timestamp | Date | string | null; }) {
   const payload = {
-    ...course,
+    title: course.title,
+    description: course.description,
+    category: course.category,
+    level: course.level,
+    thumbnailUrl: course.thumbnailUrl || "",
+    price: Number(course.price || 0),
+    isFree: Boolean(course.isFree),
+    isPublished: Boolean(course.isPublished),
     publishedAt: course.isPublished ? asTimestamp(course.publishedAt) || serverTimestamp() : null,
     updatedAt: serverTimestamp(),
-    createdAt: serverTimestamp(),
   };
 
   if (course.id) {
@@ -161,7 +170,10 @@ export async function saveCourse(course: Partial<CourseRecord> & { title: string
     return course.id;
   }
 
-  const docRef = await addDoc(coursesRef, payload);
+  const docRef = await addDoc(coursesRef, {
+    ...payload,
+    createdAt: serverTimestamp(),
+  });
   return docRef.id;
 }
 

@@ -2,7 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
-import { getStorage } from "firebase/storage";
+import { getStorage, connectStorageEmulator } from "firebase/storage";
 
 function normalizeStorageBucket(bucket?: string) {
   if (!bucket) return bucket;
@@ -52,5 +52,19 @@ const analytics = shouldEnableAnalytics ? getAnalytics(app) : undefined;
 const db = getFirestore(app);
 const auth = getAuth(app);
 const storage = getStorage(app);
+
+// If running locally and user enabled emulator via env, connect to storage emulator
+if (import.meta.env.DEV && import.meta.env.VITE_USE_STORAGE_EMULATOR === "true") {
+  const emulatorHost = import.meta.env.VITE_STORAGE_EMULATOR_HOST || "localhost";
+  const emulatorPort = Number(import.meta.env.VITE_STORAGE_EMULATOR_PORT || "9199");
+  try {
+    connectStorageEmulator(storage, emulatorHost, emulatorPort);
+    // eslint-disable-next-line no-console
+    console.log(`Connected storage emulator at ${emulatorHost}:${emulatorPort}`);
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn("Failed to connect storage emulator", e);
+  }
+}
 
 export { app, analytics, db, auth, storage };

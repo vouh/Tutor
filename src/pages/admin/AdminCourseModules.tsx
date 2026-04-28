@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, lazy, Suspense } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
+const ReactQuill = lazy(() => import("react-quill"));
 import { ArrowLeft, GripVertical, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
@@ -62,6 +62,13 @@ export default function AdminCourseModules() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState<ModuleRecord | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
+  const [quillReady, setQuillReady] = useState(false);
+
+  useEffect(() => {
+    // Only enable the client-only rich editor after mount to avoid
+    // ReactStrictMode/findDOMNode warnings from react-quill.
+    setQuillReady(true);
+  }, []);
 
   const loadData = async () => {
     if (!courseId) return;
@@ -272,7 +279,13 @@ export default function AdminCourseModules() {
           {form.type === "text" ? (
             <div>
               <label className="mb-2 block text-sm font-medium text-slate-700">Rich text content</label>
-              <ReactQuill theme="snow" value={form.content} onChange={(value) => setForm({ ...form, content: value })} className="rounded-2xl bg-white" />
+              {quillReady ? (
+                <Suspense fallback={<div className="h-40 rounded bg-slate-50">Loading editor…</div>}>
+                  <ReactQuill theme="snow" value={form.content} onChange={(value) => setForm({ ...form, content: value })} className="rounded-2xl bg-white" />
+                </Suspense>
+              ) : (
+                <textarea value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} className="h-40 w-full rounded-2xl border px-4 py-3" />
+              )}
             </div>
           ) : (
             <div className="space-y-4">

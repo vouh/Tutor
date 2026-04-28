@@ -22,8 +22,6 @@ import AdminModules from "./pages/admin/AdminModules";
 import AdminPayments from "./pages/admin/AdminPayments";
 import AdminUsers from "./pages/admin/AdminUsers";
 
-import { useEffect } from "react";
-import { analytics } from "./lib/firebase";
 import { AdminAuthProvider } from "./contexts/AdminAuthContext";
 import { RequireAdmin } from "./components/admin/RequireAdmin";
 import { AdminLayout } from "./components/admin/AdminLayout";
@@ -32,10 +30,6 @@ import { ThemeProvider } from "./components/theme-provider";
 const queryClient = new QueryClient();
 
 const App = () => {
-  useEffect(() => {
-    console.log("Firebase initialized:", analytics);
-  }, []);
-
   return (
   <QueryClientProvider client={queryClient}>
     <HelmetProvider>

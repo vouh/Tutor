@@ -123,8 +123,19 @@ export default function AdminCourses() {
       setForm(emptyForm);
       await loadCourses();
       navigate(`/admin/courses/${savedId}/modules`);
-    } catch {
-      toast.error("Failed to save course. Check Firestore permissions and republished rules.");
+    } catch (error) {
+      const code = typeof error === "object" && error !== null && "code" in error
+        ? String((error as { code?: unknown }).code)
+        : "unknown";
+      const message = error instanceof Error ? error.message : "Unknown error";
+
+      console.error("[AdminCourses] saveCourse failed", {
+        code,
+        message,
+        error,
+      });
+
+      toast.error(`Failed to save course: ${code} - ${message}`);
     } finally {
       setSaving(false);
     }
@@ -245,6 +256,9 @@ export default function AdminCourses() {
         <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>{form.id ? "Edit course" : "Create course"}</DialogTitle>
+            <DialogDescription>
+              Fill in course details, then save to continue managing modules.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 md:grid-cols-2">
