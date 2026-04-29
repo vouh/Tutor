@@ -9,7 +9,7 @@ interface PaymentModalProps {
   courseId: string;
   courseName: string;
   price: number;
-  onSuccess?: () => void;
+  onSuccess?: (result: { accessCode: string; customerName: string; location: string; phoneNumber: string }) => void;
 }
 
 type PaymentStep = 'input' | 'processing' | 'polling' | 'success' | 'failed';
@@ -22,18 +22,29 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   price,
   onSuccess,
 }) => {
+  const [customerName, setCustomerName] = useState('');
+  const [location, setLocation] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [step, setStep] = useState<PaymentStep>('input');
   const [error, setError] = useState('');
   const [checkoutRequestId, setCheckoutRequestId] = useState('');
-  const [pollCount, setPollCount] = useState(0);
+  const [accessCode, setAccessCode] = useState('');
+
+  const accessStorageKey = `tutor_access_code_${courseId || 'course'}`;
+  const generateAccessCode = () => {
+    const safeCourse = (courseId || 'course').replace(/[^a-zA-Z0-9]/g, '').slice(0, 6).toUpperCase() || 'COURSE';
+    const token = Math.random().toString(36).slice(2, 8).toUpperCase();
+    return `TUTOR-${safeCourse}-${token}`;
+  };
 
   useEffect(() => {
     if (isOpen) {
       setStep('input');
       setError('');
+      setCustomerName('');
+      setLocation('');
       setPhoneNumber('');
-      setPollCount(0);
+      setAccessCode('');
     }
   }, [isOpen]);
 
@@ -41,14 +52,14 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     if (step !== 'polling' || !checkoutRequestId) return;
 
     const pollInterval = setInterval(async () => {
-      setPollCount((prev) => prev + 1);
-
       const result = await queryPaymentStatus(checkoutRequestId);
 
       if (result.status === 'success') {
+        const code = generateAccessCode();
+        setAccessCode(code);
+        localStorage.setItem(accessStorageKey, code);
         setStep('success');
         clearInterval(pollInterval);
-        onSuccess?.();
       } else if (result.status === 'cancelled' || result.status === 'failed' || result.status === 'timeout') {
         setStep('failed');
         setError(result.message);
@@ -68,7 +79,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       clearInterval(pollInterval);
       clearTimeout(timeout);
     };
-  }, [step, checkoutRequestId, onSuccess]);
+  }, [step, checkoutRequestId, accessStorageKey, customerName, location, phoneNumber]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,6 +90,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       return;
     }
 
+    if (!customerName.trim()) {
+      setError('Please enter your name');
+      return;
+    }
+
+    if (!location.trim()) {
+      setError('Please enter your location');
+      return;
+    }
+
     setStep('processing');
 
     const result = await initiateSTKPush({
@@ -86,6 +107,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       amount: price,
       courseId,
       courseName,
+      customerName: customerName.trim(),
+      location: location.trim(),
     });
 
     if (result.success && result.checkoutRequestId) {
@@ -159,6 +182,34 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                   onSubmit={handleSubmit}
                   className="space-y-4"
                 >
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      placeholder="Your full name"
+                      className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Location
+                    </label>
+                    <input
+                      type="text"
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      placeholder="Town, estate, or school"
+                      className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                      required
+                    />
+                  </div>
+
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                       M-Pesa Phone Number
@@ -242,11 +293,19 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                   </div>
                   <h3 className="font-bold text-xl text-green-600">Payment Successful!</h3>
                   <p className="text-slate-500 text-sm mt-2">You now have access to {courseName}</p>
+                  <div className="mt-4 rounded-2xl border border-green-100 bg-green-50 p-4 text-left text-sm text-slate-700">
+                    <p className="font-semibold text-slate-900">Your access code</p>
+                    <p className="mt-1 break-all font-mono text-base text-green-700">{accessCode}</p>
+                    <p className="mt-2 text-xs text-slate-500">Keep this code safe. It can be used to recover access if payment confirmation fails later.</p>
+                  </div>
                   <button
-                    onClick={onClose}
+                    onClick={() => {
+                      onSuccess?.({ accessCode, customerName, location, phoneNumber });
+                      onClose();
+                    }}
                     className="mt-6 bg-green-600 text-white px-8 py-3 rounded-xl font-semibold hover:bg-green-700 transition-colors"
                   >
-                    Start Learning
+                    Open Course
                   </button>
                 </motion.div>
               )}

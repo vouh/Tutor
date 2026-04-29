@@ -1,13 +1,21 @@
 // M-Pesa STK Push Service
-// Default: calls same-origin `/api/*` (works on Vercel).
-// Optional: set `VITE_API_BASE_URL` to point to another host (e.g. Render) and we will call `${VITE_API_BASE_URL}/api/*`.
+// Default: calls the deployed Tutor API when running locally.
+// Set `VITE_API_BASE_URL` to override the API host explicitly.
 
-const API_ORIGIN =
+const DEFAULT_LOCAL_API_ORIGIN = 'https://tu-tor.vercel.app';
+
+const configuredApiOrigin =
 	(typeof import.meta !== 'undefined' &&
 		typeof import.meta.env !== 'undefined' &&
 		import.meta.env.VITE_API_BASE_URL)
 		? String(import.meta.env.VITE_API_BASE_URL).replace(/\/+$/, '')
 		: '';
+
+const API_ORIGIN = configuredApiOrigin || (
+	typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname)
+		? DEFAULT_LOCAL_API_ORIGIN
+		: ''
+);
 
 const API_BASE = `${API_ORIGIN}/api`;
 
@@ -28,6 +36,8 @@ export interface STKPushRequest {
 	amount?: number;
 	courseId?: string;
 	courseName?: string;
+	customerName?: string;
+	location?: string;
 }
 
 export interface STKPushResponse {

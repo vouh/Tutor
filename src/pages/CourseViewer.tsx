@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { auth } from "@/lib/firebase";
 import { initiateSTKPush, queryPaymentStatus } from "@/lib/mpesa";
-import { getCourse, getCourseProgress, getModules, getPaymentForModule, markModuleComplete, savePayment, type CourseRecord, type ModuleRecord } from "@/lib/adminData";
+import { getCourse, getCourseProgress, getCoursePayment, getModules, markModuleComplete, savePayment, type CourseRecord, type ModuleRecord } from "@/lib/adminData";
 import { onAuthStateChanged } from "firebase/auth";
 
 GlobalWorkerOptions.workerSrc = workerUrl;
@@ -25,6 +25,7 @@ export default function CourseViewer() {
   const [userId, setUserId] = useState("guest");
   const [paymentGate, setPaymentGate] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [accessCodeInput, setAccessCodeInput] = useState("");
   const [pdfError, setPdfError] = useState("");
   const pdfContainerRef = useRef<HTMLDivElement | null>(null);
 
@@ -44,14 +45,16 @@ export default function CourseViewer() {
         const nextActive = moduleId ? moduleData.find((module) => module.id === moduleId) || moduleData[0] : moduleData[0];
         setActiveModule(nextActive || null);
 
+        const storedAccessCode = localStorage.getItem(`tutor_access_code_${courseData?.id || id}`);
+
         if (nextActive && userId !== "guest") {
-          const payment = await getPaymentForModule(userId, id, nextActive.id || "");
-          setPaymentGate(Boolean(payment) || nextActive.isFree);
+          const payment = await getCoursePayment(userId, id);
+          setPaymentGate(Boolean(payment) || Boolean(courseData?.isFree) || Boolean(storedAccessCode));
           const progress = await getCourseProgress(userId, id);
           setCourseProgress(progress?.percentComplete || 0);
           setCompletedIds(progress?.completedModuleIds || []);
         } else {
-          setPaymentGate(Boolean(nextActive?.isFree));
+          setPaymentGate(Boolean(courseData?.isFree) || Boolean(storedAccessCode));
         }
       })
       .catch(() => toast.error("Unable to load course"));
@@ -119,9 +122,9 @@ export default function CourseViewer() {
       const phoneNumber = window.prompt("Enter your M-Pesa phone number") || "";
       if (!phoneNumber) return;
 
-      const payableAmount = activeModule.isFree ? 0 : Number(activeModule.price || course.price || 0);
+      const payableAmount = course.isFree ? 0 : Number(course.price || 0);
       if (payableAmount <= 0) {
-        toast.error("Missing valid price for this module");
+        toast.error("Missing valid price for this course");
         return;
       }
 
@@ -160,7 +163,7 @@ export default function CourseViewer() {
         userId,
         userEmail: auth.currentUser?.email || undefined,
         courseId: course.id || "",
-        moduleId: activeModule.id,
+        moduleId: activeModule.id || course.id || "",
         amount: payableAmount,
         mpesaReceiptNumber: result.checkoutRequestId,
         status: "completed",
@@ -176,6 +179,19 @@ export default function CourseViewer() {
     } finally {
       setPaymentLoading(false);
     }
+  };
+
+  const handleAccessCodeUnlock = () => {
+    if (!id || !accessCodeInput.trim()) return;
+
+    const storedAccessCode = localStorage.getItem(`tutor_access_code_${id}`);
+    if (storedAccessCode && storedAccessCode === accessCodeInput.trim()) {
+      setPaymentGate(true);
+      toast.success("Access code accepted. Course unlocked.");
+      return;
+    }
+
+    toast.error("That access code does not match this course.");
   };
 
   if (!course) {
@@ -205,7 +221,7 @@ export default function CourseViewer() {
             <div className="space-y-1">
               {modules.map((module) => {
                 const active = module.id === activeModule?.id;
-                const unlocked = module.isFree || (active && paymentGate);
+                const unlocked = Boolean(course.isFree || paymentGate || module.isFree);
                 return (
                   <button
                     key={module.id}
@@ -217,7 +233,7 @@ export default function CourseViewer() {
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-semibold">{module.title}</span>
-                      <span className="block text-xs text-slate-500">{module.type.toUpperCase()} · {module.isFree ? "Free" : "Paid"}</span>
+                      <span className="block text-xs text-slate-500">{module.type.toUpperCase()} · {course.isFree || module.isFree ? "Free" : "Locked until course purchase"}</span>
                     </span>
                     {completedIds.includes(module.id || "") ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : null}
                   </button>
@@ -284,8 +300,25 @@ export default function CourseViewer() {
 
                 <Card className="rounded-[1.5rem] border-slate-200 bg-white p-5 shadow-sm">
                   <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Course info</p>
-                  <p className="mt-3 text-lg font-bold text-slate-900">KES {Number(activeModule?.price || course.price || 0).toLocaleString()}</p>
+                  <p className="mt-3 text-lg font-bold text-slate-900">KES {Number(course.price || 0).toLocaleString()}</p>
                   <p className="mt-2 text-sm text-slate-600">{course.description}</p>
+                    {!paymentGate && !course.isFree ? (
+                      <div className="mt-4 space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <p className="text-sm font-semibold text-slate-900">Have an access code?</p>
+                        <input
+                          value={accessCodeInput}
+                          onChange={(event) => setAccessCodeInput(event.target.value)}
+                          placeholder="Enter access code"
+                          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-primary"
+                        />
+                        <button
+                          onClick={handleAccessCodeUnlock}
+                          className="w-full rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white"
+                        >
+                          Unlock with code
+                        </button>
+                      </div>
+                    ) : null}
                   <Link to="/courses" className="mt-4 inline-flex text-sm font-semibold text-primary">Back to course catalog</Link>
                 </Card>
               </aside>

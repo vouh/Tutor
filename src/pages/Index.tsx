@@ -1,42 +1,31 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Header from "../components/Header";
 import HeroSection from "../components/HeroSection";
 import Footer from "../components/Footer";
 import SEO from "../components/SEO";
-import { Brain, Code, Heart, TrendingUp, Wallet, Palette, ChevronRight, Play, Shield, Smartphone, Clock, Users, Star } from "lucide-react";
+import { Brain, Code, Heart, TrendingUp, Wallet, Palette, ChevronRight, Play, Shield, Smartphone, Clock, Users, Star, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { getActiveCourses, type Course } from "../lib/firestore";
 
 const Index = () => {
-  const featuredCourses = [
-    {
-      id: 1,
-      title: 'ChatGPT & AI Mastery',
-      category: 'AI & Tech',
-      price: 2500,
-      rating: 4.9,
-      students: 1250,
-      image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=400&h=250&fit=crop'
-    },
-    {
-      id: 2,
-      title: 'Python for Beginners',
-      category: 'Coding',
-      price: 3000,
-      rating: 4.8,
-      students: 980,
-      image: 'https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=400&h=250&fit=crop'
-    },
-    {
-      id: 3,
-      title: 'Personal Finance Mastery',
-      category: 'Finance',
-      price: 2500,
-      rating: 4.8,
-      students: 1100,
-      image: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400&h=250&fit=crop'
-    },
-  ];
+  const [featuredCourses, setFeaturedCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const data = await getActiveCourses();
+        // Limit to 3 featured courses as requested
+        setFeaturedCourses(data.slice(0, 3));
+      } catch (error) {
+        console.error("Error fetching featured courses:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCourses();
+  }, []);
 
   const features = [
     {
@@ -131,48 +120,59 @@ const Index = () => {
               </Link>
             </motion.div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {featuredCourses.map((course, index) => (
-                <motion.div
-                  key={course.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                  className="bg-card rounded-xl overflow-hidden border hover:shadow-xl transition-all group"
-                >
-                  <div className="relative overflow-hidden">
-                    <img
-                      src={course.image}
-                      alt={course.title}
-                      className="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg text-xs font-medium text-primary">
-                      {course.category}
-                    </div>
-                  </div>
-                  <div className="p-5">
-                    <h3 className="font-semibold text-lg mb-3">{course.title}</h3>
-                    <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
-                      <div className="flex items-center gap-1">
-                        <Star size={14} className="text-yellow-500 fill-yellow-500" />
-                        <span>{course.rating}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Users size={14} />
-                        <span>{course.students.toLocaleString()} students</span>
+              {loading ? (
+                <div className="col-span-full flex flex-col items-center justify-center py-10">
+                  <Loader2 className="w-8 h-8 text-primary animate-spin mb-2" />
+                  <p className="text-muted-foreground text-sm">Finding best courses...</p>
+                </div>
+              ) : featuredCourses.length > 0 ? (
+                featuredCourses.map((course, index) => (
+                  <motion.div
+                    key={course.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: index * 0.1 }}
+                    className="bg-card rounded-xl overflow-hidden border hover:shadow-xl transition-all group"
+                  >
+                    <div className="relative overflow-hidden">
+                      <img
+                        src={course.thumbnailUrl || 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=400&h=250&q=80'}
+                        alt={course.title}
+                        className="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg text-xs font-medium text-primary">
+                        {course.category}
                       </div>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-lg text-primary">KES {course.price.toLocaleString()}</span>
-                      <Link to={`/course/${course.id}`}>
-                        <button className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
-                          Enroll Now
-                        </button>
-                      </Link>
+                    <div className="p-5">
+                      <h3 className="font-semibold text-lg mb-3 line-clamp-1">{course.title}</h3>
+                      <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
+                        <div className="flex items-center gap-1">
+                          <Star size={14} className="text-yellow-500 fill-yellow-500" />
+                          <span>{course.rating || '4.9'}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Users size={14} />
+                          <span>{(course.students || 0).toLocaleString()} students</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-lg text-primary">KES {course.price.toLocaleString()}</span>
+                        <Link to={`/course/${course.slug || course.id}`}>
+                          <button className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
+                            Learn More
+                          </button>
+                        </Link>
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
-              ))}
+                  </motion.div>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-10">
+                  <p className="text-muted-foreground">No courses featured yet.</p>
+                </div>
+              )}
             </div>
           </div>
         </section>

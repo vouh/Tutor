@@ -1,131 +1,309 @@
-import { useParams } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle2, PlayCircle, FileText, Lock } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { ArrowRight, BadgeCheck, BookOpen, CheckCircle2, Clock3, Layers3, Loader2, MapPin, ShieldCheck, Sparkles, Star } from "lucide-react";
+import { motion } from "framer-motion";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import PaymentModal from "@/components/PaymentModal";
+import { getActiveCourses, type Course } from "@/lib/firestore";
+import { getModules, type ModuleRecord } from "@/lib/adminData";
 
-const CourseDetail = () => {
+export default function CourseDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [modules, setModules] = useState<ModuleRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [paymentOpen, setPaymentOpen] = useState(false);
 
-  // Mock data - fetch from Supabase later
-  const course = {
-    title: "KCSE Mathematics Revision Masterclass",
-    price: 500,
-    description: "Complete revision guide for KCSE Mathematics. Covers Algebra, Calculus, Geometry and more with step-by-step video solutions.",
-    instructor: "Mr. David Kamau",
-    lessons: 12,
-    duration: "5 Hours",
-    level: "High School",
-    features: [
-      "Full Syllabus Coverage",
-      "Past Paper Solutions",
-      "Downloadable PDF Notes",
-      "24/7 Tutor Support"
-    ]
+  useEffect(() => {
+    const loadCourses = async () => {
+      try {
+        const data = await getActiveCourses();
+        setCourses(data);
+      } catch (error) {
+        console.error("Unable to load course details", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void loadCourses();
+  }, []);
+
+  const course = useMemo(
+    () => courses.find((item) => item.id === id || item.slug === id) || null,
+    [courses, id]
+  );
+
+  useEffect(() => {
+    if (!course?.id) return;
+
+    const loadModules = async () => {
+      try {
+        const data = await getModules(course.id);
+        setModules(data);
+      } catch (error) {
+        console.error("Unable to load course modules", error);
+      }
+    };
+
+    void loadModules();
+  }, [course?.id]);
+
+  const highlights = [
+    "Real course overview before payment",
+    "Actual module titles and descriptions from Firestore",
+    "Instant access code after payment",
+    "Works with paid and free courses",
+  ];
+
+  const handleEnroll = () => {
+    if (!course) return;
+
+    if (course.isFree || Number(course.price || 0) <= 0) {
+      navigate(`/courses/${course.id}`);
+      return;
+    }
+
+    setPaymentOpen(true);
   };
 
-  return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-      
-      {/* Hero Section */}
-      <div className="bg-primary/5 py-12 md:py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-            <div className="lg:col-span-2 space-y-6">
-              <Badge className="bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
-                {course.level}
-              </Badge>
-              <h1 className="text-4xl md:text-5xl font-bold text-foreground font-montserrat">
-                {course.title}
-              </h1>
-              <p className="text-lg text-muted-foreground leading-relaxed">
-                {course.description}
-              </p>
-              <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                <span className="flex items-center"><PlayCircle className="w-4 h-4 mr-2" /> {course.lessons} Lessons</span>
-                <span className="flex items-center"><FileText className="w-4 h-4 mr-2" /> {course.duration}</span>
-                <span>By {course.instructor}</span>
-              </div>
-            </div>
-            
-            {/* Pricing Card */}
-            <div className="lg:col-span-1">
-              <Card className="sticky top-24 shadow-xl border-primary/10 overflow-hidden">
-                <div className="h-48 bg-gray-200 relative">
-                  <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                    <PlayCircle className="w-16 h-16 opacity-50" />
-                  </div>
-                </div>
-                <CardContent className="p-6 space-y-6">
-                  <div className="text-3xl font-bold text-primary">
-                    KES {course.price}
-                  </div>
-                  <Button className="w-full text-lg py-6 font-semibold shadow-lg hover:shadow-xl transition-all">
-                    Buy Now with M-Pesa
-                  </Button>
-                  <p className="text-xs text-center text-muted-foreground">
-                    Instant access after payment
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 text-slate-900">
+        <Header />
+        <main className="flex min-h-[70vh] items-center justify-center px-4">
+          <div className="flex flex-col items-center gap-3 rounded-[1.75rem] border border-slate-200 bg-white px-8 py-10 shadow-sm">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-slate-500">Loading course details...</p>
           </div>
-        </div>
+        </main>
+        <Footer />
       </div>
+    );
+  }
 
-      {/* Content Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-          <div className="lg:col-span-2">
-            <Tabs defaultValue="curriculum" className="w-full">
-              <TabsList className="mb-8">
-                <TabsTrigger value="curriculum">Curriculum</TabsTrigger>
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="instructor">Instructor</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="curriculum" className="space-y-4">
-                {[1, 2, 3, 4, 5].map((lesson) => (
-                  <div key={lesson} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center space-x-4">
-                      <div className="bg-primary/10 p-2 rounded-full">
-                        <PlayCircle className="w-5 h-5 text-primary" />
-                      </div>
-                      <div>
-                        <h4 className="font-medium">Lesson {lesson}: Introduction to Algebra</h4>
-                        <p className="text-sm text-muted-foreground">15 mins</p>
-                      </div>
+  if (!course) {
+    return (
+      <div className="min-h-screen bg-slate-50 text-slate-900">
+        <Header />
+        <main className="flex min-h-[70vh] items-center justify-center px-4">
+          <div className="max-w-lg rounded-[1.75rem] border border-dashed border-slate-300 bg-white p-8 text-center shadow-sm">
+            <BookOpen className="mx-auto h-12 w-12 text-slate-300" />
+            <h1 className="mt-4 text-2xl font-bold text-slate-900">Course not found</h1>
+            <p className="mt-2 text-sm text-slate-500">The course link may be outdated or the course is still unpublished.</p>
+            <button
+              onClick={() => navigate("/courses")}
+              className="mt-6 inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-white"
+            >
+              Back to courses <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#faf8f3] text-slate-900">
+      <Header />
+
+      <main className="pt-24">
+        <section className="relative overflow-hidden border-b border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.18),_transparent_28%),radial-gradient(circle_at_top_right,_rgba(14,165,233,0.16),_transparent_24%),linear-gradient(135deg,_#0f172a_0%,_#172554_45%,_#0f766e_100%)] text-white">
+          <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(255,255,255,0.14)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.14)_1px,transparent_1px)] [background-size:48px_48px]" />
+          <div className="relative mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[1.2fr,0.8fr] lg:px-8 lg:py-20">
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-6"
+            >
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-white/80 backdrop-blur-sm">
+                <Sparkles className="h-4 w-4 text-amber-300" />
+                Course preview
+              </div>
+              <div className="space-y-3">
+                <p className="text-sm font-medium text-white/70">{course.category} · {course.level}</p>
+                <h1 className="max-w-3xl text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl">
+                  {course.title}
+                </h1>
+                <p className="max-w-2xl text-base leading-7 text-white/82 sm:text-lg">
+                  {course.description}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 text-sm text-white/80">
+                <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm">
+                  <Star className="h-4 w-4 text-amber-300" />
+                  {course.rating || 4.9} rating
+                </span>
+                <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm">
+                  <Layers3 className="h-4 w-4" />
+                  {course.moduleCount || 1} modules
+                </span>
+                <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm">
+                  <Clock3 className="h-4 w-4" />
+                  {course.duration || "Self-paced"}
+                </span>
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.08 }}
+              className="relative"
+            >
+              <div className="overflow-hidden rounded-[2rem] border border-white/15 bg-white/10 shadow-2xl backdrop-blur-xl">
+                <img
+                  src={course.thumbnailUrl || "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=80"}
+                  alt={course.title}
+                  className="h-72 w-full object-cover sm:h-80"
+                />
+                <div className="space-y-4 p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.22em] text-white/60">Enrollment</p>
+                      <p className="mt-1 text-2xl font-bold text-white">
+                        {course.isFree || Number(course.price || 0) <= 0 ? "Free" : `KES ${Number(course.price || 0).toLocaleString()}`}
+                      </p>
                     </div>
-                    <Lock className="w-4 h-4 text-muted-foreground" />
+                    <BadgeCheck className="h-10 w-10 text-emerald-300" />
+                  </div>
+
+                  <button
+                    onClick={handleEnroll}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3.5 text-sm font-semibold text-slate-900 transition-transform hover:scale-[1.01]"
+                  >
+                    {course.isFree || Number(course.price || 0) <= 0 ? "Start Learning" : "Enroll Now"}
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+
+                  <p className="text-xs leading-5 text-white/65">
+                    After payment you will receive a unique access code and the course will unlock in the reader.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </section>
+
+        <section className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[1.15fr,0.85fr] lg:px-8 lg:py-16">
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="space-y-6"
+          >
+            <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+              <h2 className="text-2xl font-bold text-slate-900">What this course gives you</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                This page keeps the public preview focused on the course overview, instructions, and enrollment entry point. The outline below comes from the real course modules saved in Firestore.
+              </p>
+
+              <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                {highlights.map((item) => (
+                  <div key={item} className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-600" />
+                    <p className="text-sm font-medium text-slate-700">{item}</p>
                   </div>
                 ))}
-              </TabsContent>
-              
-              <TabsContent value="overview">
-                <div className="prose max-w-none">
-                  <h3 className="text-xl font-semibold mb-4">What you'll learn</h3>
-                  <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {course.features.map((feature, index) => (
-                      <li key={index} className="flex items-start space-x-2">
-                        <CheckCircle2 className="w-5 h-5 text-green-500 mt-0.5" />
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
+              </div>
+            </div>
+
+            <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+              <h2 className="text-2xl font-bold text-slate-900">Instructions</h2>
+              <p className="mt-3 whitespace-pre-line text-sm leading-7 text-slate-600">
+                {course.instructions || "No extra instructions have been added for this course yet."}
+              </p>
+            </div>
+
+            <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+              <h2 className="text-2xl font-bold text-slate-900">Course content</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                These are the actual modules linked to this course.
+              </p>
+              <div className="mt-6 space-y-4">
+                {modules.length > 0 ? modules.map((module) => (
+                  <div key={module.id || module.title} className="rounded-2xl border border-slate-200 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Module {module.order}</p>
+                        <h3 className="mt-1 text-lg font-semibold text-slate-900">{module.title}</h3>
+                      </div>
+                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase text-slate-600">
+                        {module.type}
+                      </span>
+                    </div>
+                    <p className="mt-3 text-sm leading-6 text-slate-600">{module.description}</p>
+                    {module.assignment ? (
+                      <div className="mt-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                        <span className="font-semibold">Assignment: </span>
+                        {module.assignment}
+                      </div>
+                    ) : null}
+                  </div>
+                )) : (
+                  <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-500">
+                    No modules have been added for this course yet.
+                  </div>
+                )}
+              </div>
+            </div>
+          </motion.div>
+
+          <aside className="space-y-6">
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm"
+            >
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Course details</p>
+              <div className="mt-5 space-y-4 text-sm text-slate-600">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="inline-flex items-center gap-2 text-slate-500"><BookOpen className="h-4 w-4" />Category</span>
+                  <span className="font-semibold text-slate-900">{course.category}</span>
                 </div>
-              </TabsContent>
-            </Tabs>
-          </div>
-        </div>
-      </div>
-      
+                <div className="flex items-center justify-between gap-4">
+                  <span className="inline-flex items-center gap-2 text-slate-500"><ShieldCheck className="h-4 w-4" />Level</span>
+                  <span className="font-semibold text-slate-900">{course.level}</span>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <span className="inline-flex items-center gap-2 text-slate-500"><Layers3 className="h-4 w-4" />Modules</span>
+                  <span className="font-semibold text-slate-900">{course.moduleCount || 1}</span>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <span className="inline-flex items-center gap-2 text-slate-500"><MapPin className="h-4 w-4" />Access</span>
+                  <span className="font-semibold text-slate-900">Instant after payment</span>
+                </div>
+              </div>
+            </motion.div>
+
+            <div className="rounded-[1.75rem] border border-dashed border-slate-300 bg-white p-6 shadow-sm">
+              <p className="text-sm font-semibold text-slate-900">Need help recovering access?</p>
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                Keep the access code shown after payment. It is your fallback if the payment confirmation flow is interrupted.
+              </p>
+            </div>
+          </aside>
+        </section>
+      </main>
+
+      <PaymentModal
+        isOpen={paymentOpen}
+        onClose={() => setPaymentOpen(false)}
+        courseId={course.id || ""}
+        courseName={course.title}
+        price={Number(course.price || 0)}
+        onSuccess={() => {
+          setPaymentOpen(false);
+          navigate(`/courses/${course.id}`);
+        }}
+      />
+
       <Footer />
     </div>
   );
-};
-
-export default CourseDetail;
+}

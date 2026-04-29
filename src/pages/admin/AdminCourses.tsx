@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { CheckCircle2, CircleOff, Edit3, Loader2, Plus, Search, Trash2 } from "lucide-react";
+import { CheckCircle2, CircleOff, Edit3, Loader2, Plus, Search, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Timestamp } from "firebase/firestore";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { deleteCourse, getCourses, saveCourse, toggleCoursePublished, type CourseLevel, type CourseRecord } from "@/lib/adminData";
+import { deleteCourse, getCourses, resizeImageToDataUrl, saveCourse, toggleCoursePublished, type CourseLevel, type CourseRecord } from "@/lib/adminData";
 
 const levels: CourseLevel[] = ["Beginner", "Intermediate", "Advanced"];
 
@@ -13,8 +13,10 @@ type CourseFormState = {
   id?: string;
   title: string;
   description: string;
+  instructions: string;
   category: string;
   level: CourseLevel;
+  moduleCount: string;
   price: string;
   isFree: boolean;
   isPublished: boolean;
@@ -24,8 +26,10 @@ type CourseFormState = {
 const emptyForm: CourseFormState = {
   title: "",
   description: "",
+  instructions: "",
   category: "",
   level: "Beginner",
+  moduleCount: "1",
   price: "0",
   isFree: false,
   isPublished: false,
@@ -38,8 +42,10 @@ function toForm(course?: CourseRecord): CourseFormState {
         id: course.id,
         title: course.title,
         description: course.description,
+        instructions: course.instructions || "",
         category: course.category,
         level: course.level,
+        moduleCount: String(course.moduleCount || 1),
         price: String(course.price),
         isFree: course.isFree,
         isPublished: course.isPublished,
@@ -57,6 +63,8 @@ export default function AdminCourses() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<CourseFormState>(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<CourseRecord | null>(null);
   const [publishBusyId, setPublishBusyId] = useState<string | null>(null);
 
@@ -89,12 +97,27 @@ export default function AdminCourses() {
 
   const startCreate = () => {
     setForm(emptyForm);
+    setThumbnailFile(null);
+    setThumbnailPreview("");
     setDialogOpen(true);
   };
 
   const startEdit = (course: CourseRecord) => {
     setForm(toForm(course));
+    setThumbnailFile(null);
+    setThumbnailPreview(course.thumbnailUrl || "");
     setDialogOpen(true);
+  };
+
+  const handleThumbnailChange = (file?: File | null) => {
+    setThumbnailFile(file || null);
+    if (file) {
+      setThumbnailPreview(URL.createObjectURL(file));
+    } else if (form.thumbnailUrl) {
+      setThumbnailPreview(form.thumbnailUrl);
+    } else {
+      setThumbnailPreview("");
+    }
   };
 
   const handleSave = async () => {
@@ -105,37 +128,78 @@ export default function AdminCourses() {
         return;
       }
 
+      if (!form.moduleCount || Number(form.moduleCount) < 1) {
+        toast.error("Module count must be at least 1");
+        return;
+      }
+
+      if (!thumbnailFile && !thumbnailPreview && !form.thumbnailUrl) {
+        toast.error("Course thumbnail is required");
+        return;
+      }
+
+      if (!form.isFree && Number(form.price || 0) <= 0) {
+        toast.error("Enter a valid price or switch the course to free");
+        return;
+      }
+
+      const courseId = form.id || crypto.randomUUID();
+      let thumbnailUrl = form.thumbnailUrl;
+
+      if (thumbnailFile) {
+        thumbnailUrl = await resizeImageToDataUrl(thumbnailFile);
+      }
+
+      if (!thumbnailUrl) {
+        toast.error("Course thumbnail processing failed");
+        return;
+      }
+
+      if (thumbnailUrl.length > 950000) {
+        toast.error("Thumbnail is too large after compression. Use a smaller image.");
+        return;
+      }
+
+      const coursePrice = form.isFree ? 0 : Number(form.price || 0);
+
       const savedId = await saveCourse({
-        id: form.id,
+        id: courseId,
         title: form.title,
         description: form.description,
+        instructions: form.instructions,
         category: form.category,
         level: form.level,
-        price: Number(form.price || 0),
+        moduleCount: Number(form.moduleCount),
+        price: coursePrice,
         isFree: form.isFree,
         isPublished: form.isPublished,
-        thumbnailUrl: form.thumbnailUrl,
+        thumbnailUrl,
         publishedAt: form.isPublished ? Timestamp.now() : null,
       });
 
       toast.success(form.id ? "Course updated" : "Course created");
       setDialogOpen(false);
       setForm(emptyForm);
+      setThumbnailFile(null);
+      setThumbnailPreview("");
       await loadCourses();
       navigate(`/admin/courses/${savedId}/modules`);
     } catch (error) {
-      const code = typeof error === "object" && error !== null && "code" in error
-        ? String((error as { code?: unknown }).code)
-        : "unknown";
-      const message = error instanceof Error ? error.message : "Unknown error";
+      const firebaseError = error as { code?: unknown; message?: unknown; customData?: unknown; stack?: unknown };
+      const code = typeof firebaseError?.code === "string" ? firebaseError.code : "unknown";
+      const message = typeof firebaseError?.message === "string" ? firebaseError.message : error instanceof Error ? error.message : "Unknown error";
+      const details = typeof firebaseError?.customData === "object" ? firebaseError.customData : undefined;
 
       console.error("[AdminCourses] saveCourse failed", {
         code,
         message,
+        details,
         error,
+        form,
+        hasThumbnailFile: Boolean(thumbnailFile),
       });
 
-      toast.error(`Failed to save course: ${code} - ${message}`);
+      toast.error(`Failed to save course: ${message}`);
     } finally {
       setSaving(false);
     }
@@ -266,6 +330,32 @@ export default function AdminCourses() {
               <label className="mb-2 block text-sm font-medium text-slate-700">Title</label>
               <input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} className="w-full rounded-2xl border border-slate-200 px-4 py-3" />
             </div>
+            <div className="md:col-span-2 space-y-3">
+              <label className="mb-2 block text-sm font-medium text-slate-700">Thumbnail</label>
+              <div className="grid gap-4 md:grid-cols-[180px,1fr]">
+                <div className="overflow-hidden rounded-2xl border border-dashed border-slate-300 bg-slate-50">
+                  <img
+                    src={thumbnailPreview || form.thumbnailUrl || "https://placehold.co/640x360"}
+                    alt={form.title || "Course thumbnail preview"}
+                    className="h-40 w-full object-cover"
+                  />
+                </div>
+                <div className="space-y-3">
+                  <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 hover:border-primary hover:text-primary">
+                    <Upload className="h-4 w-4" />
+                    Upload thumbnail image
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(event) => handleThumbnailChange(event.target.files?.[0] || null)}
+                    />
+                  </label>
+                  <p className="text-xs text-slate-500">Required. Use a clean landscape image for the course card.</p>
+                  {thumbnailFile ? <p className="text-xs font-medium text-slate-700">Selected: {thumbnailFile.name}</p> : null}
+                </div>
+              </div>
+            </div>
             <div>
               <label className="mb-2 block text-sm font-medium text-slate-700">Category</label>
               <input value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })} className="w-full rounded-2xl border border-slate-200 px-4 py-3" placeholder="e.g. Mathematics" />
@@ -277,15 +367,32 @@ export default function AdminCourses() {
               </select>
             </div>
             <div>
+              <label className="mb-2 block text-sm font-medium text-slate-700">Module count</label>
+              <input value={form.moduleCount} onChange={(event) => setForm({ ...form, moduleCount: event.target.value })} type="number" min="1" className="w-full rounded-2xl border border-slate-200 px-4 py-3" />
+            </div>
+            <div>
               <label className="mb-2 block text-sm font-medium text-slate-700">Price (KES)</label>
-              <input value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} type="number" className="w-full rounded-2xl border border-slate-200 px-4 py-3" />
+              {form.isFree ? (
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">This course is marked free, so price is disabled.</div>
+              ) : (
+                <input value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} type="number" min="0" className="w-full rounded-2xl border border-slate-200 px-4 py-3" />
+              )}
             </div>
             <div className="md:col-span-2">
               <label className="mb-2 block text-sm font-medium text-slate-700">Description</label>
               <textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} rows={5} className="w-full rounded-2xl border border-slate-200 px-4 py-3" />
             </div>
+            <div className="md:col-span-2">
+              <label className="mb-2 block text-sm font-medium text-slate-700">Instructions</label>
+              <textarea value={form.instructions} onChange={(event) => setForm({ ...form, instructions: event.target.value })} rows={4} className="w-full rounded-2xl border border-slate-200 px-4 py-3" placeholder="Optional course instructions or notes for students" />
+            </div>
             <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-              <input type="checkbox" checked={form.isFree} onChange={(event) => setForm({ ...form, isFree: event.target.checked })} /> Free course
+              <input
+                type="checkbox"
+                checked={form.isFree}
+                onChange={(event) => setForm({ ...form, isFree: event.target.checked, price: event.target.checked ? "0" : form.price })}
+              />
+              Free course
             </label>
             <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
               <input type="checkbox" checked={form.isPublished} onChange={(event) => setForm({ ...form, isPublished: event.target.checked })} /> Published

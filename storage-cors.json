@@ -1,8 +1,19 @@
 [
   {
-    "origin": ["http://localhost:8080"],
+    "origin": ["http://localhost:8080", "https://tu-tor.vercel.app"],
     "method": ["GET","HEAD","PUT","POST","DELETE","OPTIONS"],
-    "responseHeader": ["Content-Type","x-goog-resumable","Authorization"],
+    "responseHeader": [
+      "Content-Type",
+      "x-goog-resumable",
+      "Authorization",
+      "x-firebase-gmpid",
+      "x-goog-upload-command",
+      "x-goog-upload-protocol",
+      "x-goog-upload-offset",
+      "x-goog-upload-header-content-length",
+      "x-goog-upload-file-name",
+      "x-goog-upload-content-type"
+    ],
     "maxAgeSeconds": 3600
   }
 ]

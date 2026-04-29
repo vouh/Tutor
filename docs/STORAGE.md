@@ -20,7 +20,21 @@ gcloud auth login
 gsutil cors set storage-cors.json gs://tutor-ba90d.appspot.com
 ```
 
-4. Verify the preflight response (example):
+4. Find the bucket in Firebase Console:
+
+- Open Firebase Console and select your project.
+- Go to `Build` -> `Storage`.
+- You will see the bucket name near the top of the page.
+- Use that exact bucket name in the `gsutil cors set ...` command.
+
+5. If uploads still fail after setting CORS, check these common causes:
+
+- The app is using a different bucket in `.env` than the one you updated.
+- The origin is missing from `storage-cors.json`.
+- You ran `npm install gsutil ...` instead of installing Google Cloud SDK.
+- The bucket CORS was not applied successfully to the live bucket.
+
+6. Verify the preflight response (example):
 
 ```bash
 curl -i -X OPTIONS "https://firebasestorage.googleapis.com/v0/b/tutor-ba90d.appspot.com/o?name=temp.pdf" \

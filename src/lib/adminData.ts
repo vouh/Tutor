@@ -23,11 +23,14 @@ export type ModuleType = "text" | "pdf";
 
 export interface CourseRecord {
   id?: string;
+  slug?: string;
   title: string;
   description: string;
+  instructions?: string;
   category: string;
   level: CourseLevel;
   thumbnailUrl: string;
+  moduleCount: number;
   price: number;
   isFree: boolean;
   publishedAt: Timestamp | null;
@@ -39,12 +42,12 @@ export interface CourseRecord {
 export interface ModuleRecord {
   id?: string;
   title: string;
-  description?: string;
+  description: string;
+  assignment?: string;
   type: ModuleType;
   courseId: string;
   order: number;
   isFree: boolean;
-  price?: number;
   content: string;
   pdfUrl: string;
   createdAt?: Timestamp;
@@ -96,6 +99,16 @@ const modulesRef = collection(db, "modules");
 const paymentsRef = collection(db, "payments");
 const usersRef = collection(db, "users");
 
+function createCourseSlug(title: string, courseId: string) {
+  const baseSlug = title
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return `${baseSlug || "course"}-${courseId.slice(0, 8)}`;
+}
+
 function asDate(value: Timestamp | Date | string | null | undefined) {
   if (!value) return null;
   if (value instanceof Timestamp) return value.toDate();
@@ -132,12 +145,40 @@ async function uploadFile(file: File, path: string, onProgress?: (progress: numb
   });
 }
 
-export async function uploadCourseThumbnail(courseId: string, file: File, onProgress?: (progress: number) => void) {
-  return uploadFile(file, `courses/${courseId}/thumbnail-${Date.now()}-${file.name}`, onProgress);
-}
-
 export async function uploadModulePdf(courseId: string, moduleId: string, file: File, onProgress?: (progress: number) => void) {
   return uploadFile(file, `courses/${courseId}/modules/${moduleId}-${Date.now()}-${file.name}`, onProgress);
+}
+
+export async function resizeImageToDataUrl(file: File, maxEdge = 1200, quality = 0.82) {
+  const reader = new FileReader();
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+  const image = new Image();
+  await new Promise<void>((resolve, reject) => {
+    image.onload = () => resolve();
+    image.onerror = reject;
+    image.src = dataUrl;
+  });
+
+  let { width, height } = image;
+  if (width > maxEdge || height > maxEdge) {
+    const scale = Math.min(maxEdge / width, maxEdge / height);
+    width = Math.round(width * scale);
+    height = Math.round(height * scale);
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d");
+  if (!context) return dataUrl;
+
+  context.drawImage(image, 0, 0, width, height);
+  return canvas.toDataURL("image/jpeg", quality);
 }
 
 export async function getCourses() {
@@ -150,13 +191,21 @@ export async function getCourse(courseId: string) {
   return snapshot.exists() ? ({ id: snapshot.id, ...snapshot.data() } as CourseRecord) : null;
 }
 
-export async function saveCourse(course: Partial<CourseRecord> & { title: string; description: string; category: string; level: CourseLevel; price: number; isFree: boolean; isPublished: boolean; thumbnailUrl: string; publishedAt?: Timestamp | Date | string | null; }) {
+export async function saveCourse(course: Partial<CourseRecord> & { title: string; description: string; category: string; level: CourseLevel; price: number; isFree: boolean; isPublished: boolean; thumbnailUrl: string; moduleCount: number; instructions?: string; publishedAt?: Timestamp | Date | string | null; }) {
+  const courseId = course.id || doc(coursesRef).id;
+  const courseRef = doc(db, "courses", courseId);
+  const existing = course.id ? await getDoc(courseRef) : null;
+  const slug = course.slug || createCourseSlug(course.title, courseId);
+
   const payload = {
+    slug,
     title: course.title,
     description: course.description,
+    instructions: course.instructions || "",
     category: course.category,
     level: course.level,
     thumbnailUrl: course.thumbnailUrl || "",
+    moduleCount: Number(course.moduleCount || 0),
     price: Number(course.price || 0),
     isFree: Boolean(course.isFree),
     isPublished: Boolean(course.isPublished),
@@ -164,17 +213,11 @@ export async function saveCourse(course: Partial<CourseRecord> & { title: string
     updatedAt: serverTimestamp(),
   };
 
-  if (course.id) {
-    const courseRef = doc(db, "courses", course.id);
-    await updateDoc(courseRef, payload);
-    return course.id;
-  }
-
-  const docRef = await addDoc(coursesRef, {
+  await setDoc(courseRef, existing?.exists() ? payload : {
     ...payload,
     createdAt: serverTimestamp(),
-  });
-  return docRef.id;
+  }, { merge: true });
+  return courseId;
 }
 
 export async function deleteCourse(courseId: string) {
@@ -211,20 +254,29 @@ export async function getModule(moduleId: string) {
   return snapshot.exists() ? ({ id: snapshot.id, ...snapshot.data() } as ModuleRecord) : null;
 }
 
-export async function saveModule(moduleData: Partial<ModuleRecord> & { title: string; type: ModuleType; courseId: string; order: number; isFree: boolean; price?: number; description?: string; content: string; pdfUrl: string; }) {
+export async function saveModule(moduleData: Partial<ModuleRecord> & { title: string; description: string; assignment?: string; type: ModuleType; courseId: string; order: number; isFree: boolean; content: string; pdfUrl: string; }) {
+  const moduleId = moduleData.id || doc(modulesRef).id;
+  const moduleRef = doc(db, "modules", moduleId);
+  const existing = moduleData.id ? await getDoc(moduleRef) : null;
+
   const payload = {
-    ...moduleData,
+    title: moduleData.title,
+    description: moduleData.description,
+    assignment: moduleData.assignment || "",
+    type: moduleData.type,
+    courseId: moduleData.courseId,
+    order: moduleData.order,
+    isFree: Boolean(moduleData.isFree),
+    content: moduleData.content,
+    pdfUrl: moduleData.pdfUrl,
     updatedAt: serverTimestamp(),
-    createdAt: serverTimestamp(),
   };
 
-  if (moduleData.id) {
-    await updateDoc(doc(db, "modules", moduleData.id), payload);
-    return moduleData.id;
-  }
-
-  const docRef = await addDoc(modulesRef, payload);
-  return docRef.id;
+  await setDoc(moduleRef, existing?.exists() ? payload : {
+    ...payload,
+    createdAt: serverTimestamp(),
+  }, { merge: true });
+  return moduleId;
 }
 
 export async function deleteModule(moduleId: string) {
@@ -256,6 +308,19 @@ export async function getPaymentForModule(userId: string, courseId: string, modu
       where("userId", "==", userId),
       where("courseId", "==", courseId),
       where("moduleId", "==", moduleId),
+      where("status", "==", "completed")
+    )
+  );
+
+  return snapshot.docs.length > 0 ? ({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as PaymentRecord) : null;
+}
+
+export async function getCoursePayment(userId: string, courseId: string) {
+  const snapshot = await getDocs(
+    query(
+      paymentsRef,
+      where("userId", "==", userId),
+      where("courseId", "==", courseId),
       where("status", "==", "completed")
     )
   );

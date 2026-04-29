@@ -18,16 +18,21 @@ import { db } from './firebase';
 // Types
 export interface Course {
   id?: string;
+  slug?: string;
   title: string;
   description: string;
+  instructions?: string;
   category: string;
   price: number;
+  moduleCount?: number;
   duration: string;
   thumbnailUrl: string;
   contentUrl: string;
   contentType: 'pdf' | 'video';
   students: number;
   rating: number;
+  isFree?: boolean;
+  isPublished?: boolean;
   status: 'draft' | 'active' | 'archived';
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -70,20 +75,17 @@ export const getAllCourses = async (): Promise<Course[]> => {
 };
 
 export const getActiveCourses = async (): Promise<Course[]> => {
-  const q = query(coursesRef, where('status', '==', 'active'), orderBy('createdAt', 'desc'));
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Course));
+  const snapshot = await getDocs(query(coursesRef, orderBy('createdAt', 'desc')));
+  return snapshot.docs
+    .map(doc => ({ id: doc.id, ...doc.data() } as Course))
+    .filter((course) => course.isPublished === true || course.status === 'active');
 };
 
 export const getCoursesByCategory = async (category: string): Promise<Course[]> => {
-  const q = query(
-    coursesRef, 
-    where('status', '==', 'active'),
-    where('category', '==', category),
-    orderBy('createdAt', 'desc')
-  );
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Course));
+  const snapshot = await getDocs(query(coursesRef, where('category', '==', category), orderBy('createdAt', 'desc')));
+  return snapshot.docs
+    .map(doc => ({ id: doc.id, ...doc.data() } as Course))
+    .filter((course) => course.isPublished === true || course.status === 'active');
 };
 
 export const getCourseById = async (id: string): Promise<Course | null> => {

@@ -13,10 +13,9 @@ type ModuleFormState = {
   id?: string;
   title: string;
   description: string;
+  assignment: string;
   type: ModuleType;
   order: number;
-  isFree: boolean;
-  price: string;
   content: string;
   pdfUrl: string;
 };
@@ -24,10 +23,9 @@ type ModuleFormState = {
 const emptyForm: ModuleFormState = {
   title: "",
   description: "",
+  assignment: "",
   type: "text",
   order: 1,
-  isFree: false,
-  price: "",
   content: "",
   pdfUrl: "",
 };
@@ -38,10 +36,9 @@ function toForm(module?: ModuleRecord, fallbackOrder = 1): ModuleFormState {
         id: module.id,
         title: module.title,
         description: module.description || "",
+        assignment: module.assignment || "",
         type: module.type,
         order: module.order,
-        isFree: module.isFree,
-        price: module.price ? String(module.price) : "",
         content: module.content,
         pdfUrl: module.pdfUrl,
       }
@@ -113,31 +110,46 @@ export default function AdminCourseModules() {
         return;
       }
 
-      if (!form.isFree && (!form.price || Number(form.price) <= 0)) {
-        toast.error("Set a valid module price for paid modules");
+      if (!form.description.trim()) {
+        toast.error("Module description is required");
+        return;
+      }
+
+      if (!form.assignment.trim()) {
+        toast.error("Assignment or test text is required");
+        return;
+      }
+
+      if (!form.content.trim()) {
+        toast.error("Lesson content is required");
         return;
       }
 
       let pdfUrl = form.pdfUrl;
+      const moduleId = form.id || crypto.randomUUID();
+
       if (form.type === "pdf" && pdfFile) {
-        const moduleId = form.id || `temp-${Date.now()}`;
         pdfUrl = await uploadModulePdf(courseId, moduleId, pdfFile, setUploadProgress);
       }
 
       if (form.type === "pdf" && !pdfUrl) {
-        toast.error("Upload a PDF file for Type B modules");
+        toast.error("Upload a PDF file for PDF modules");
         return;
       }
 
+      if (form.type === "text") {
+        pdfUrl = "";
+      }
+
       await saveModule({
-        id: form.id,
+        id: moduleId,
         title: form.title,
         description: form.description,
+        assignment: form.assignment,
         type: form.type,
         courseId,
         order: form.order,
-        isFree: form.isFree,
-        price: form.isFree ? 0 : Number(form.price),
+        isFree: false,
         content: form.content,
         pdfUrl,
       });
@@ -146,9 +158,23 @@ export default function AdminCourseModules() {
       setDialogOpen(false);
       setPdfFile(null);
       setUploadProgress(0);
+      setForm(emptyForm);
       await loadData();
-    } catch {
-      toast.error("Failed to save module");
+    } catch (error) {
+      const firebaseError = error as { code?: unknown; message?: unknown; customData?: unknown };
+      const code = typeof firebaseError?.code === "string" ? firebaseError.code : "unknown";
+      const message = typeof firebaseError?.message === "string" ? firebaseError.message : error instanceof Error ? error.message : "Unknown error";
+
+      console.error("[AdminCourseModules] saveModule failed", {
+        code,
+        message,
+        error,
+        form,
+        courseId,
+        hasPdfFile: Boolean(pdfFile),
+      });
+
+      toast.error(`Failed to save module: ${message}`);
     } finally {
       setSaving(false);
     }
@@ -221,7 +247,6 @@ export default function AdminCourseModules() {
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="font-semibold text-slate-900">{module.title}</h3>
                     <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">{module.type}</span>
-                    {module.isFree ? <span className="rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700">Free preview</span> : <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">Paid</span>}
                   </div>
                   <p className="text-sm text-slate-500">Order {module.order}</p>
                 </div>
@@ -251,8 +276,12 @@ export default function AdminCourseModules() {
               <input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} className="w-full rounded-2xl border border-slate-200 px-4 py-3" />
             </div>
             <div className="md:col-span-2">
-              <label className="mb-2 block text-sm font-medium text-slate-700">Description (optional)</label>
+              <label className="mb-2 block text-sm font-medium text-slate-700">Description</label>
               <textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} rows={3} className="w-full rounded-2xl border border-slate-200 px-4 py-3" />
+            </div>
+            <div className="md:col-span-2">
+              <label className="mb-2 block text-sm font-medium text-slate-700">Assignment / test text</label>
+              <textarea value={form.assignment} onChange={(event) => setForm({ ...form, assignment: event.target.value })} rows={4} className="w-full rounded-2xl border border-slate-200 px-4 py-3" placeholder="Add the assignment, task, or test instructions for this topic" />
             </div>
             <div>
               <label className="mb-2 block text-sm font-medium text-slate-700">Type</label>
@@ -265,15 +294,6 @@ export default function AdminCourseModules() {
               <label className="mb-2 block text-sm font-medium text-slate-700">Order</label>
               <input type="number" value={form.order} onChange={(event) => setForm({ ...form, order: Number(event.target.value) })} className="w-full rounded-2xl border border-slate-200 px-4 py-3" />
             </div>
-            <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-              <input type="checkbox" checked={form.isFree} onChange={(event) => setForm({ ...form, isFree: event.target.checked })} /> Free preview
-            </label>
-            {!form.isFree ? (
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">Price (KES)</label>
-                <input type="number" min={1} value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} className="w-full rounded-2xl border border-slate-200 px-4 py-3" />
-              </div>
-            ) : null}
           </div>
 
           {form.type === "text" ? (
@@ -294,8 +314,8 @@ export default function AdminCourseModules() {
                 <input type="file" accept="application/pdf" onChange={(event) => setPdfFile(event.target.files?.[0] || null)} className="w-full rounded-2xl border border-slate-200 px-4 py-2" />
               </div>
               <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">Download / unlock note</label>
-                <input value={form.content} onChange={(event) => setForm({ ...form, content: event.target.value })} placeholder="Optional description for the PDF lesson" className="w-full rounded-2xl border border-slate-200 px-4 py-3" />
+                <label className="mb-2 block text-sm font-medium text-slate-700">Lesson notes</label>
+                <input value={form.content} onChange={(event) => setForm({ ...form, content: event.target.value })} placeholder="Optional notes for the PDF lesson" className="w-full rounded-2xl border border-slate-200 px-4 py-3" />
               </div>
             </div>
           )}

@@ -1,25 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import PaymentModal from '../components/PaymentModal';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Loader2, BookOpen, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { getActiveCourses, type Course } from '../lib/firestore';
 
 const Courses = () => {
-  const [isModalOpen, setModalOpen] = useState(false);
-  const [accessGranted, setAccessGranted] = useState(false);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const testCourse = {
-    id: 'test-001',
-    title: 'Test Purchase Course',
-    description:
-      'Demo content used to validate STK Push payments. You will receive access immediately after the payment goes through.',
-    duration: '1 week',
-    students: 42,
-    rating: 4.9,
-    price: 2500,
-    image: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=800&q=80',
-  };
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const data = await getActiveCourses();
+        setCourses(data);
+      } catch (error) {
+        console.error("Error fetching courses:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCourses();
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900">
@@ -35,80 +38,97 @@ const Courses = () => {
             >
               <span className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full text-sm mx-auto">
                 <Sparkles size={16} className="text-yellow-300" />
-                Live Test Payment
+                Premium Education
               </span>
               <h1 className="text-3xl sm:text-4xl font-bold font-montserrat">
-                Purchase the Test Course
+                Our Professional Courses
               </h1>
               <p className="text-white/80 text-base sm:text-lg">
-                This one course is dedicated to STK Push testing. Complete the payment of <strong>KES 2,500</strong> first to unlock the demo content.
+                High-quality revision materials and courses designed for your success.
               </p>
             </motion.div>
           </div>
         </section>
 
-        <section className="relative -mt-16 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto">
-            <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden">
-              <div className="grid lg:grid-cols-[1fr,0.9fr]">
-                <div className="relative">
-                  <img src={testCourse.image} alt={testCourse.title} className="h-64 w-full object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                  <div className="absolute bottom-4 left-4 text-white">
-                    <p className="text-sm uppercase tracking-[0.2em] text-white/70">Demo Course</p>
-                    <h2 className="text-2xl font-bold">{testCourse.title}</h2>
-                  </div>
-                </div>
-                <div className="p-8 space-y-5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-slate-500 text-sm">Price</p>
-                      <p className="text-3xl font-bold text-primary">KES {testCourse.price.toLocaleString()}</p>
-                    </div>
-                    <span className="px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold">
-                      STK Push Only
-                    </span>
-                  </div>
-                  <p className="text-sm text-slate-500 dark:text-slate-300 leading-relaxed">
-                    You must complete this payment to receive the simulated course access. This course is used to test the payment workflow before we roll out the full catalog.
-                  </p>
-                  <ul className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
-                    <li>• Duration: {testCourse.duration}</li>
-                    <li>• Students tested: {testCourse.students}</li>
-                    <li>• Rating: {testCourse.rating}</li>
-                    <li>• Access is granted immediately after successful payment</li>
-                  </ul>
-                  <button
-                    onClick={() => setModalOpen(true)}
-                    className="w-full bg-gradient-to-r from-primary to-accent text-white py-3 rounded-2xl font-semibold hover:shadow-[0_15px_45px_rgba(244,63,94,0.25)] transition-all"
-                  >
-                    Buy & Receive STK Push
-                  </button>
-                  {accessGranted && (
-                    <p className="text-sm text-green-600 dark:text-green-400">
-                      Payment confirmed! Refresh the page to see access status or head to your dashboard to continue testing.
-                    </p>
-                  )}
-                </div>
+        <section className="py-12 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto">
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-20">
+                <Loader2 className="w-10 h-10 text-primary animate-spin mb-4" />
+                <p className="text-muted-foreground">Loading courses...</p>
               </div>
-            </div>
+            ) : courses.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {courses.map((course) => (
+                  <motion.div
+                    key={course.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden flex flex-col"
+                  >
+                    <div className="relative">
+                      <img 
+                        src={course.thumbnailUrl || 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=800&q=80'} 
+                        alt={course.title} 
+                        className="h-48 w-full object-cover" 
+                      />
+                      <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold text-primary">
+                        {course.category}
+                      </div>
+                    </div>
+                    
+                    <div className="p-6 flex-1 flex flex-col space-y-4">
+                      <div>
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white line-clamp-2">{course.title}</h3>
+                        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400 line-clamp-3">
+                          {course.description}
+                        </p>
+                      </div>
+
+                      <div className="mt-auto pt-4 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-slate-500 text-xs uppercase tracking-wider">Price</p>
+                            <p className="text-2xl font-bold text-primary">KES {course.price.toLocaleString()}</p>
+                          </div>
+                          <div className="text-right text-xs text-slate-500">
+                            <p>{course.duration}</p>
+                            <p>{course.students} students</p>
+                          </div>
+                        </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <Link
+                              to={`/course/${course.slug || course.id}`}
+                              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+                            >
+                              Learn More
+                            </Link>
+                            <Link
+                              to={`/course/${course.slug || course.id}`}
+                              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-primary to-accent px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-primary/15"
+                            >
+                              Enroll Now <ArrowRight className="h-4 w-4" />
+                            </Link>
+                          </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-20 bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-300 dark:border-slate-700">
+                <BookOpen className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-slate-900 dark:text-white">No courses available</h3>
+                <p className="text-slate-500">Check back later for new content.</p>
+              </div>
+            )}
           </div>
         </section>
       </main>
 
       <Footer />
-
-      <PaymentModal
-        isOpen={isModalOpen}
-        onClose={() => setModalOpen(false)}
-        courseId={testCourse.id}
-        courseName={testCourse.title}
-        price={testCourse.price}
-        onSuccess={() => {
-          setAccessGranted(true);
-          setModalOpen(false);
-        }}
-      />
     </div>
   );
 };
