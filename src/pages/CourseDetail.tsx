@@ -4,7 +4,6 @@ import { ArrowRight, BadgeCheck, BookOpen, CheckCircle2, Clock3, Layers3, Loader
 import { motion } from "framer-motion";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import PaymentModal from "@/components/PaymentModal";
 import { getActiveCourses, type Course } from "@/lib/firestore";
 import { getModules, type ModuleRecord } from "@/lib/adminData";
 
@@ -14,7 +13,6 @@ export default function CourseDetail() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [modules, setModules] = useState<ModuleRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [paymentOpen, setPaymentOpen] = useState(false);
 
   useEffect(() => {
     const loadCourses = async () => {
@@ -52,21 +50,16 @@ export default function CourseDetail() {
   }, [course?.id]);
 
   const highlights = [
-    "Real course overview before payment",
+    "Create your learner account before access",
     "Actual module titles and descriptions from Firestore",
-    "Instant access code after payment",
-    "Works with paid and free courses",
+    "Payment instructions are handled after enrollment",
+    "Your course stays linked to your email account",
   ];
 
   const handleEnroll = () => {
     if (!course) return;
 
-    if (course.isFree || Number(course.price || 0) <= 0) {
-      navigate(`/courses/${course.id}`);
-      return;
-    }
-
-    setPaymentOpen(true);
+    navigate(`/enroll/${course.id}`);
   };
 
   if (loading) {
@@ -181,7 +174,7 @@ export default function CourseDetail() {
                   </button>
 
                   <p className="text-xs leading-5 text-white/65">
-                    After payment you will receive a unique access code and the course will unlock in the reader.
+                    Create your learner account first. Our team will follow up with payment instructions after enrollment.
                   </p>
                 </div>
               </div>
@@ -276,7 +269,7 @@ export default function CourseDetail() {
                 </div>
                 <div className="flex items-center justify-between gap-4">
                   <span className="inline-flex items-center gap-2 text-slate-500"><MapPin className="h-4 w-4" />Access</span>
-                  <span className="font-semibold text-slate-900">Instant after payment</span>
+                  <span className="font-semibold text-slate-900">Learner account</span>
                 </div>
               </div>
             </motion.div>
@@ -284,24 +277,12 @@ export default function CourseDetail() {
             <div className="rounded-[1.75rem] border border-dashed border-slate-300 bg-white p-6 shadow-sm">
               <p className="text-sm font-semibold text-slate-900">Need help recovering access?</p>
               <p className="mt-2 text-sm leading-6 text-slate-500">
-                Keep the access code shown after payment. It is your fallback if the payment confirmation flow is interrupted.
+                Enroll with your email and password, then return to your dashboard any time.
               </p>
             </div>
           </aside>
         </section>
       </main>
-
-      <PaymentModal
-        isOpen={paymentOpen}
-        onClose={() => setPaymentOpen(false)}
-        courseId={course.id || ""}
-        courseName={course.title}
-        price={Number(course.price || 0)}
-        onSuccess={() => {
-          setPaymentOpen(false);
-          navigate(`/courses/${course.id}`);
-        }}
-      />
 
       <Footer />
     </div>

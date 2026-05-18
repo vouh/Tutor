@@ -1,22 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AuthModal from './AuthModal';
+import { useAuth } from '@/contexts/AuthContext';
 import tutorLogo from '../assets/tutor_logo.png';
 import tutorLogoLight from '../assets/tutor_logo_light.png';
 
 const Header = () => {
+  const { user, profile, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authTab, setAuthTab] = useState<'login' | 'signup'>('login');
   const location = useLocation();
+  const navigate = useNavigate();
+  const routeState = location.state as { openAuthModal?: boolean; authTab?: 'login' | 'signup'; redirectTo?: string } | null;
 
   // Check if we're on pages that need solid header background
   const needsSolidBg = ['/courses', '/contact', '/dashboard', '/admin'].some(
     path => location.pathname.startsWith(path)
   );
+
+  useEffect(() => {
+    if (routeState?.openAuthModal && !user) {
+      setAuthTab(routeState.authTab || 'login');
+      setAuthModalOpen(true);
+    }
+  }, [routeState, user]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -95,26 +106,48 @@ const Header = () => {
 
             {/* Right Actions */}
             <div className="hidden md:flex items-center gap-2">
-              {/* Login Button */}
-              <button 
-                onClick={() => openAuth('login')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
-                  showSolidBg 
-                    ? 'text-slate-700 dark:text-slate-200 hover:text-primary hover:bg-primary/5' 
-                    : 'text-white/90 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                <User size={16} />
-                Login
-              </button>
+              {user ? (
+                <>
+                  <button
+                    onClick={() => navigate('/dashboard')}
+                    className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all duration-300 ${
+                      showSolidBg
+                        ? 'text-slate-700 dark:text-slate-200 hover:text-primary hover:bg-primary/5'
+                        : 'text-white/90 hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    <User size={16} />
+                    {profile?.displayName || 'Dashboard'}
+                  </button>
+                  <button
+                    onClick={() => void logout()}
+                    className="rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-700 transition-all duration-300 hover:border-primary hover:text-primary dark:border-slate-700 dark:text-slate-200"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button 
+                    onClick={() => openAuth('login')}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
+                      showSolidBg 
+                        ? 'text-slate-700 dark:text-slate-200 hover:text-primary hover:bg-primary/5' 
+                        : 'text-white/90 hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    <User size={16} />
+                    Login
+                  </button>
 
-              {/* Sign Up Button */}
-              <button 
-                onClick={() => openAuth('signup')}
-                className="bg-gradient-to-r from-primary to-accent text-white px-5 py-2 rounded-full text-sm font-semibold hover:shadow-lg hover:shadow-primary/25 transition-all duration-300 transform hover:scale-105"
-              >
-                Get Started
-              </button>
+                  <button 
+                    onClick={() => openAuth('signup')}
+                    className="bg-gradient-to-r from-primary to-accent text-white px-5 py-2 rounded-full text-sm font-semibold hover:shadow-lg hover:shadow-primary/25 transition-all duration-300 transform hover:scale-105"
+                  >
+                    Get Started
+                  </button>
+                </>
+              )}
             </div>
 
             {/* Mobile Menu Button */}
@@ -153,20 +186,41 @@ const Header = () => {
                     {item.name}
                   </Link>
                 ))}
+                {user ? (
+                  <>
+                    <Link
+                      to="/dashboard"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="block px-4 py-3.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      Dashboard
+                    </Link>
+                    <button
+                      onClick={() => { void logout(); setMobileMenuOpen(false); }}
+                      className="w-full px-4 py-3.5 rounded-xl text-sm font-medium text-left text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      Logout
+                    </button>
+                  </>
+                ) : null}
                 <div className="pt-4 space-y-2 border-t mt-2">
-                  <button 
-                    onClick={() => openAuth('login')}
-                    className="w-full px-4 py-3.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left flex items-center gap-2"
-                  >
-                    <User size={18} />
-                    Login
-                  </button>
-                  <button 
-                    onClick={() => openAuth('signup')}
-                    className="w-full bg-gradient-to-r from-primary to-accent text-white px-4 py-3.5 rounded-xl text-sm font-semibold"
-                  >
-                    Get Started Free
-                  </button>
+                  {!user ? (
+                    <>
+                      <button 
+                        onClick={() => openAuth('login')}
+                        className="w-full px-4 py-3.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left flex items-center gap-2"
+                      >
+                        <User size={18} />
+                        Login
+                      </button>
+                      <button 
+                        onClick={() => openAuth('signup')}
+                        className="w-full bg-gradient-to-r from-primary to-accent text-white px-4 py-3.5 rounded-xl text-sm font-semibold"
+                      >
+                        Get Started Free
+                      </button>
+                    </>
+                  ) : null}
                 </div>
               </nav>
             </motion.div>
@@ -179,6 +233,11 @@ const Header = () => {
         isOpen={authModalOpen} 
         onClose={() => setAuthModalOpen(false)} 
         defaultTab={authTab}
+        onSuccess={() => {
+          if (routeState?.redirectTo) {
+            navigate(routeState.redirectTo, { replace: true });
+          }
+        }}
       />
     </>
   );

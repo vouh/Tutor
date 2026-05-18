@@ -106,7 +106,7 @@ const Courses = () => {
                               Learn More
                             </Link>
                             <Link
-                              to={`/course/${course.slug || course.id}`}
+                              to={`/enroll/${course.id}`}
                               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-primary to-accent px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-primary/15"
                             >
                               Enroll Now <ArrowRight className="h-4 w-4" />

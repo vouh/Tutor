@@ -1,5 +1,7 @@
 import {
   addDoc,
+  arrayRemove,
+  arrayUnion,
   collection,
   deleteDoc,
   doc,
@@ -19,7 +21,7 @@ import { deleteObject, getDownloadURL, ref, uploadBytesResumable } from "firebas
 import { db, storage } from "@/lib/firebase";
 
 export type CourseLevel = "Beginner" | "Intermediate" | "Advanced";
-export type ModuleType = "text" | "pdf";
+export type ModuleType = "text" | "pdf" | "video";
 
 export interface CourseRecord {
   id?: string;
@@ -72,11 +74,52 @@ export interface UserRecord {
   id?: string;
   uid?: string;
   email?: string;
+  fullName?: string;
   displayName?: string;
   name?: string;
   phone?: string;
+  age?: number;
+  hasLaptop?: boolean;
+  interestReason?: string;
   createdAt?: Timestamp;
+  enrolledAt?: Timestamp;
   totalSpent?: number;
+  enrolledCourses?: string[];
+  paymentsLog?: LearnerPaymentEntry[];
+  sessionToken?: string | null;
+  notificationsEnabled?: boolean;
+}
+
+export interface LearnerPaymentEntry {
+  id: string;
+  date: Timestamp;
+  amount: number;
+  status: "paid" | "pending" | "failed";
+  note?: string;
+}
+
+export interface UserCourseRecord {
+  courseId: string;
+  courseName: string;
+  enrolledAt?: Timestamp | null;
+  status?: string;
+}
+
+export interface UserDetailsRecord extends UserRecord {
+  enrolledCourses: UserCourseRecord[];
+  certificatesCount: number;
+}
+
+export interface NotificationRecord {
+  id?: string;
+  title: string;
+  message: string;
+  audience: "all" | "selected";
+  targetUserIds: string[];
+  createdAt?: Timestamp;
+  createdBy?: string;
+  createdByEmail?: string;
+  expiresAt?: Timestamp | null;
 }
 
 export interface CourseProgressRecord {
@@ -98,6 +141,8 @@ const coursesRef = collection(db, "courses");
 const modulesRef = collection(db, "modules");
 const paymentsRef = collection(db, "payments");
 const usersRef = collection(db, "users");
+const learnersRef = collection(db, "learners");
+const notificationsRef = collection(db, "notifications");
 
 function createCourseSlug(title: string, courseId: string) {
   const baseSlug = title
@@ -221,10 +266,21 @@ export async function saveCourse(course: Partial<CourseRecord> & { title: string
 }
 
 export async function deleteCourse(courseId: string) {
+  const courseSnapshot = await getDoc(doc(db, "courses", courseId));
+  const courseData = courseSnapshot.exists() ? (courseSnapshot.data() as CourseRecord) : null;
+  const modulesSnapshot = await getDocs(query(modulesRef, where("courseId", "==", courseId)));
+
+  await Promise.all([
+    courseData?.thumbnailUrl ? deleteStoredFile(courseData.thumbnailUrl) : Promise.resolve(),
+    ...modulesSnapshot.docs.map((moduleDocument) => {
+      const moduleData = moduleDocument.data() as ModuleRecord;
+      return moduleData.pdfUrl ? deleteStoredFile(moduleData.pdfUrl) : Promise.resolve();
+    }),
+  ]);
+
   const batch = writeBatch(db);
   batch.delete(doc(db, "courses", courseId));
 
-  const modulesSnapshot = await getDocs(query(modulesRef, where("courseId", "==", courseId)));
   modulesSnapshot.forEach((moduleDocument) => batch.delete(moduleDocument.ref));
 
   const paymentsSnapshot = await getDocs(query(paymentsRef, where("courseId", "==", courseId)));
@@ -280,6 +336,13 @@ export async function saveModule(moduleData: Partial<ModuleRecord> & { title: st
 }
 
 export async function deleteModule(moduleId: string) {
+  const snapshot = await getDoc(doc(db, "modules", moduleId));
+  if (snapshot.exists()) {
+    const moduleData = snapshot.data() as ModuleRecord;
+    if (moduleData.pdfUrl) {
+      await deleteStoredFile(moduleData.pdfUrl);
+    }
+  }
   await deleteDoc(doc(db, "modules", moduleId));
 }
 
@@ -293,7 +356,144 @@ export async function reorderModules(courseId: string, orderedModuleIds: string[
 
 export async function getUsers() {
   const snapshot = await getDocs(query(usersRef, orderBy("createdAt", "desc")));
-  return snapshot.docs.map((document) => ({ id: document.id, ...document.data() } as UserRecord));
+  const userRecords = snapshot.docs.map((document) => ({ id: document.id, ...document.data() } as UserRecord));
+
+  try {
+    const learnerSnapshot = await getDocs(query(learnersRef, orderBy("createdAt", "desc")));
+    const byEmail = new Map(userRecords.map((user) => [String(user.email || "").toLowerCase(), user]));
+    learnerSnapshot.docs.forEach((document) => {
+      const learner = { id: document.id, ...document.data() } as UserRecord;
+      const existing = byEmail.get(String(learner.email || document.id).toLowerCase());
+      if (existing) {
+        Object.assign(existing, { ...learner, id: existing.id || learner.id, uid: existing.uid || learner.uid });
+      } else {
+        userRecords.push(learner);
+      }
+    });
+  } catch {
+    // Older deployments may not have a learners collection yet.
+  }
+
+  return userRecords;
+}
+
+export async function getUserDetails(userId: string): Promise<UserDetailsRecord | null> {
+  const userSnapshot = await getDoc(doc(db, "users", userId));
+  if (!userSnapshot.exists()) {
+    return null;
+  }
+
+  const userData = { id: userSnapshot.id, ...userSnapshot.data() } as UserRecord;
+  let learnerData: UserRecord | null = null;
+  if (userData.email) {
+    const learnerSnapshot = await getDoc(doc(db, "learners", userData.email.toLowerCase()));
+    learnerData = learnerSnapshot.exists() ? ({ id: learnerSnapshot.id, ...learnerSnapshot.data() } as UserRecord) : null;
+  }
+  const enrollmentSnapshot = await getDocs(
+    query(collection(db, "enrollments"), where("userId", "==", userId), where("status", "==", "active"))
+  );
+
+  const enrolledCourses: UserCourseRecord[] = [];
+  for (const enrollmentDocument of enrollmentSnapshot.docs) {
+    const enrollmentData = enrollmentDocument.data() as { courseId: string; enrolledAt?: Timestamp | null; status?: string };
+    const courseSnapshot = await getDoc(doc(db, "courses", enrollmentData.courseId));
+    enrolledCourses.push({
+      courseId: enrollmentData.courseId,
+      courseName: courseSnapshot.exists() ? String(courseSnapshot.data().title || enrollmentData.courseId) : enrollmentData.courseId,
+      enrolledAt: enrollmentData.enrolledAt || null,
+      status: enrollmentData.status,
+    });
+  }
+
+  const certificateSnapshot = await getDocs(query(collection(db, "certificates"), where("userId", "==", userId)));
+
+  return {
+    ...userData,
+    ...learnerData,
+    id: userData.id,
+    uid: userData.uid || userData.id,
+    enrolledCourses,
+    certificatesCount: certificateSnapshot.size,
+  };
+}
+
+export async function deleteUserRecord(user: UserRecord) {
+  if (!user.id && !user.email) return;
+
+  const batch = writeBatch(db);
+  if (user.id) {
+    batch.delete(doc(db, "users", user.id));
+    const enrollmentSnapshot = await getDocs(query(collection(db, "enrollments"), where("userId", "==", user.id)));
+    enrollmentSnapshot.forEach((enrollmentDocument) => batch.delete(enrollmentDocument.ref));
+  }
+  if (user.email) {
+    batch.delete(doc(db, "learners", user.email.toLowerCase()));
+  }
+  await batch.commit();
+}
+
+export async function addLearnerPayment(email: string, entry: Omit<LearnerPaymentEntry, "id" | "date"> & { date?: Timestamp }) {
+  await updateDoc(doc(db, "learners", email.toLowerCase()), {
+    paymentsLog: arrayUnion({
+      id: crypto.randomUUID(),
+      date: entry.date || Timestamp.now(),
+      amount: Number(entry.amount || 0),
+      status: entry.status,
+      note: entry.note || "",
+    }),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function grantLearnerCourse(user: UserRecord, courseId: string) {
+  if (!user.email) throw new Error("Learner email is required");
+  await setDoc(doc(db, "learners", user.email.toLowerCase()), {
+    enrolledCourses: arrayUnion(courseId),
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
+  if (user.id) {
+    await setDoc(doc(db, "enrollments", `${user.id}_${courseId}`), {
+      userId: user.id,
+      userEmail: user.email,
+      courseId,
+      enrolledAt: serverTimestamp(),
+      status: "active",
+    }, { merge: true });
+    await setDoc(doc(db, "users", user.id), {
+      enrolledCourses: arrayUnion(courseId),
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+  }
+}
+
+export async function revokeLearnerCourse(user: UserRecord, courseId: string) {
+  if (!user.email) throw new Error("Learner email is required");
+  await setDoc(doc(db, "learners", user.email.toLowerCase()), {
+    enrolledCourses: arrayRemove(courseId),
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
+  if (user.id) {
+    await setDoc(doc(db, "enrollments", `${user.id}_${courseId}`), {
+      status: "revoked",
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+    await setDoc(doc(db, "users", user.id), {
+      enrolledCourses: arrayRemove(courseId),
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+  }
+}
+
+export async function getNotifications() {
+  const snapshot = await getDocs(query(notificationsRef, orderBy("createdAt", "desc")));
+  return snapshot.docs.map((document) => ({ id: document.id, ...document.data() } as NotificationRecord));
+}
+
+export async function createNotification(notification: Omit<NotificationRecord, "id" | "createdAt">) {
+  return addDoc(notificationsRef, {
+    ...notification,
+    createdAt: serverTimestamp(),
+  });
 }
 
 export async function getPayments() {
@@ -405,7 +605,9 @@ export async function getDashboardSummary() {
 
 export { asDate };
 
-export async function deleteStoredThumbnail(url: string) {
+export async function deleteStoredFile(url: string) {
   if (!url.includes("firebase")) return;
   await deleteObject(ref(storage, url)).catch(() => undefined);
 }
+
+export const deleteStoredThumbnail = deleteStoredFile;

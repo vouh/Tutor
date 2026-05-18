@@ -1,17 +1,22 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, Mail, Lock, User, Phone, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   defaultTab?: 'login' | 'signup';
+  onSuccess?: () => void;
 }
 
-const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTab = 'login' }) => {
+const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTab = 'login', onSuccess }) => {
+  const { login, signup } = useAuth();
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>(defaultTab);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -19,13 +24,58 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTab = 'lo
     password: '',
   });
 
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab(defaultTab);
+      setErrorMessage('');
+    }
+  }, [defaultTab, isOpen]);
+
+  const getAuthErrorMessage = (error: unknown) => {
+    const code = typeof error === 'object' && error && 'code' in error ? String((error as { code?: string }).code || '') : '';
+
+    switch (code) {
+      case 'auth/email-already-in-use':
+        return 'That email is already in use.';
+      case 'auth/invalid-email':
+        return 'Enter a valid email address.';
+      case 'auth/weak-password':
+        return 'Use a stronger password with at least 6 characters.';
+      case 'auth/invalid-credential':
+      case 'auth/wrong-password':
+      case 'auth/user-not-found':
+        return 'Invalid email or password.';
+      case 'auth/too-many-requests':
+        return 'Too many attempts. Try again later.';
+      default:
+        return error instanceof Error ? error.message : 'Unable to sign in right now.';
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setIsLoading(false);
-    onClose();
+    setErrorMessage('');
+
+    try {
+      if (activeTab === 'signup') {
+        await signup(formData);
+        toast.success('Account created successfully');
+      } else {
+        await login(formData.email, formData.password);
+        toast.success('Signed in successfully');
+      }
+
+      onClose();
+      onSuccess?.();
+      setFormData({ name: '', email: '', phone: '', password: '' });
+    } catch (error) {
+      const message = getAuthErrorMessage(error);
+      setErrorMessage(message);
+      toast.error(message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -174,6 +224,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTab = 'lo
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
+
+            {errorMessage ? (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {errorMessage}
+              </div>
+            ) : null}
 
             {activeTab === 'login' && (
               <div className="flex justify-end">

@@ -50,7 +50,7 @@ export default function AdminDashboard() {
         })}
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1.3fr,0.7fr]">
+      <section>
         <Card className="rounded-[1.5rem] border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
             <div>
@@ -73,20 +73,6 @@ export default function AdminDashboard() {
               </div>
             ))}
             {summary.activities.length === 0 ? <p className="text-sm text-slate-500">No activity yet.</p> : null}
-          </div>
-        </Card>
-
-        <Card className="rounded-[1.5rem] border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-900">Quick notes</h2>
-          <div className="mt-4 space-y-3 text-sm text-slate-600">
-            <p>Admin routes use Firebase Authentication with persistent session state.</p>
-            <p>Course thumbnails and module PDFs are uploaded to Firebase Storage.</p>
-            <p>Payments are stored in Firestore and displayed in the payments table.</p>
-          </div>
-          <div className="mt-5 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 p-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Revenue</p>
-            <p className="mt-1 text-3xl font-bold text-slate-900">KES {summary.totalRevenue.toLocaleString()}</p>
-            <p className="mt-1 text-sm text-slate-600">Completed M-Pesa payments</p>
           </div>
         </Card>
       </section>

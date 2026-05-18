@@ -1,13 +1,10 @@
-import { useEffect, useMemo, useState, lazy, Suspense } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import "react-quill/dist/quill.snow.css";
-const ReactQuill = lazy(() => import("react-quill"));
 import { ArrowLeft, GripVertical, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { deleteModule, getCourse, getModules, reorderModules, saveModule, uploadModulePdf, type CourseRecord, type ModuleRecord, type ModuleType } from "@/lib/adminData";
-
 
 type ModuleFormState = {
   id?: string;
@@ -39,8 +36,8 @@ function toForm(module?: ModuleRecord, fallbackOrder = 1): ModuleFormState {
         assignment: module.assignment || "",
         type: module.type,
         order: module.order,
-        content: module.content,
-        pdfUrl: module.pdfUrl,
+        content: module.content || "",
+        pdfUrl: module.pdfUrl || "",
       }
     : { ...emptyForm, order: fallbackOrder };
 }
@@ -59,13 +56,6 @@ export default function AdminCourseModules() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState<ModuleRecord | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
-  const [quillReady, setQuillReady] = useState(false);
-
-  useEffect(() => {
-    // Only enable the client-only rich editor after mount to avoid
-    // ReactStrictMode/findDOMNode warnings from react-quill.
-    setQuillReady(true);
-  }, []);
 
   const loadData = async () => {
     if (!courseId) return;
@@ -85,7 +75,10 @@ export default function AdminCourseModules() {
     void loadData();
   }, [courseId]);
 
-  const fallbackOrder = useMemo(() => (modules.length > 0 ? Math.max(...modules.map((module) => module.order)) + 1 : 1), [modules]);
+  const fallbackOrder = useMemo(
+    () => (modules.length > 0 ? Math.max(...modules.map((module) => Number(module.order || 0))) + 1 : 1),
+    [modules]
+  );
 
   const startCreate = () => {
     setForm(toForm(undefined, fallbackOrder));
@@ -110,22 +103,7 @@ export default function AdminCourseModules() {
         return;
       }
 
-      if (!form.description.trim()) {
-        toast.error("Module description is required");
-        return;
-      }
-
-      if (!form.assignment.trim()) {
-        toast.error("Assignment or test text is required");
-        return;
-      }
-
-      if (!form.content.trim()) {
-        toast.error("Lesson content is required");
-        return;
-      }
-
-      let pdfUrl = form.pdfUrl;
+      let pdfUrl = form.pdfUrl.trim();
       const moduleId = form.id || crypto.randomUUID();
 
       if (form.type === "pdf" && pdfFile) {
@@ -133,25 +111,26 @@ export default function AdminCourseModules() {
       }
 
       if (form.type === "pdf" && !pdfUrl) {
-        toast.error("Upload a PDF file for PDF modules");
+        toast.error("Upload a PDF file");
         return;
       }
 
-      if (form.type === "text") {
-        pdfUrl = "";
+      if (form.type === "video" && !pdfUrl) {
+        toast.error("Video URL is required");
+        return;
       }
 
       await saveModule({
         id: moduleId,
-        title: form.title,
-        description: form.description,
-        assignment: form.assignment,
+        title: form.title.trim(),
+        description: form.description.trim(),
+        assignment: form.assignment.trim(),
         type: form.type,
         courseId,
-        order: form.order,
+        order: Number(form.order || fallbackOrder),
         isFree: false,
-        content: form.content,
-        pdfUrl,
+        content: form.content.trim(),
+        pdfUrl: form.type === "text" ? "" : pdfUrl,
       });
 
       toast.success(form.id ? "Module updated" : "Module created");
@@ -161,19 +140,8 @@ export default function AdminCourseModules() {
       setForm(emptyForm);
       await loadData();
     } catch (error) {
-      const firebaseError = error as { code?: unknown; message?: unknown; customData?: unknown };
-      const code = typeof firebaseError?.code === "string" ? firebaseError.code : "unknown";
-      const message = typeof firebaseError?.message === "string" ? firebaseError.message : error instanceof Error ? error.message : "Unknown error";
-
-      console.error("[AdminCourseModules] saveModule failed", {
-        code,
-        message,
-        error,
-        form,
-        courseId,
-        hasPdfFile: Boolean(pdfFile),
-      });
-
+      const message = error instanceof Error ? error.message : "Unknown error";
+      console.error("[AdminCourseModules] saveModule failed", error);
       toast.error(`Failed to save module: ${message}`);
     } finally {
       setSaving(false);
@@ -200,10 +168,10 @@ export default function AdminCourseModules() {
     if (fromIndex < 0 || toIndex < 0) return;
     const [moved] = next.splice(fromIndex, 1);
     next.splice(toIndex, 0, moved);
-    const orderedIds = next.map((module, index) => ({ ...module, order: index + 1 }));
-    setModules(orderedIds);
+    const ordered = next.map((module, index) => ({ ...module, order: index + 1 }));
+    setModules(ordered);
     try {
-      await reorderModules(courseId, orderedIds.map((module) => module.id || ""));
+      await reorderModules(courseId, ordered.map((module) => module.id || ""));
       toast.success("Module order updated");
     } catch {
       toast.error("Failed to reorder modules");
@@ -212,121 +180,142 @@ export default function AdminCourseModules() {
   };
 
   if (loading) {
-    return <div className="rounded-[1.5rem] border border-slate-200 bg-white p-6 text-sm text-slate-500">Loading module manager...</div>;
+    return <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">Loading...</div>;
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
-        <div>
-          <button onClick={() => navigate("/admin/courses")} className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900">
-            <ArrowLeft className="h-4 w-4" /> Back to courses
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3">
+        <div className="min-w-0">
+          <button onClick={() => navigate("/admin/courses")} className="mb-1 inline-flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-4 w-4" /> Courses
           </button>
-          <h2 className="text-2xl font-bold text-slate-900">{course?.title || "Course"} modules</h2>
-          <p className="mt-1 text-sm text-slate-500">Drag modules to reorder them. Text modules use rich content, PDF modules use Storage uploads.</p>
+          <h2 className="truncate text-xl font-bold text-foreground">{course?.title || "Course"} modules</h2>
         </div>
-        <button onClick={startCreate} className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-primary to-accent px-4 py-3 text-sm font-semibold text-white">
+        <button onClick={startCreate} className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground">
           <Plus className="h-4 w-4" /> Add module
         </button>
       </div>
 
-      <div className="grid gap-4">
-        {modules.map((module) => (
-          <Card
-            key={module.id}
-            draggable
-            onDragStart={() => setDragId(module.id || null)}
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={() => void handleReorder(module.id || "")}
-            className="rounded-[1.5rem] border-slate-200 bg-white p-4 shadow-sm"
-          >
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex items-center gap-3">
-                <span className="rounded-2xl bg-slate-100 p-2 text-slate-500"><GripVertical className="h-4 w-4" /></span>
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-semibold text-slate-900">{module.title}</h3>
-                    <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">{module.type}</span>
-                  </div>
-                  <p className="text-sm text-slate-500">Order {module.order}</p>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <button onClick={() => startEdit(module)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700">Edit</button>
-                <button onClick={() => setDeleteTarget(module)} className="rounded-xl border border-red-200 px-3 py-2 text-sm font-medium text-red-600"><Trash2 className="mr-1 inline h-4 w-4" /> Delete</button>
-              </div>
-            </div>
-          </Card>
-        ))}
-        {modules.length === 0 ? <Card className="rounded-[1.5rem] border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm text-slate-500">No modules yet. Add the first lesson.</Card> : null}
-      </div>
+      <Card className="overflow-hidden rounded-lg border-border bg-card shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-muted/60 text-left text-[11px] uppercase tracking-wide text-muted-foreground">
+              <tr>
+                <th className="px-3 py-2">Order</th>
+                <th className="px-3 py-2">Module</th>
+                <th className="px-3 py-2">Type</th>
+                <th className="px-3 py-2">Resource</th>
+                <th className="px-3 py-2 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {modules.map((module) => (
+                <tr
+                  key={module.id}
+                  draggable
+                  onDragStart={() => setDragId(module.id || null)}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={() => void handleReorder(module.id || "")}
+                  className="hover:bg-muted/40"
+                >
+                  <td className="w-24 px-3 py-2 text-sm text-muted-foreground">
+                    <span className="inline-flex items-center gap-2"><GripVertical className="h-4 w-4" /> {module.order}</span>
+                  </td>
+                  <td className="max-w-[420px] px-3 py-2">
+                    <p className="truncate text-sm font-medium text-foreground">{module.title}</p>
+                    <p className="truncate text-xs text-muted-foreground">{module.description || "-"}</p>
+                  </td>
+                  <td className="px-3 py-2 text-sm capitalize text-foreground">{module.type}</td>
+                  <td className="px-3 py-2 text-sm text-muted-foreground">{module.pdfUrl ? "Attached" : module.content ? "Text" : "-"}</td>
+                  <td className="px-3 py-2">
+                    <div className="flex justify-end gap-1">
+                      <button onClick={() => startEdit(module)} className="rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-muted">Edit</button>
+                      <button onClick={() => setDeleteTarget(module)} className="rounded-md border border-red-200 px-2.5 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"><Trash2 className="mr-1 inline h-3.5 w-3.5" />Delete</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {modules.length === 0 ? <tr><td colSpan={5} className="px-3 py-8 text-center text-sm text-muted-foreground">No modules yet.</td></tr> : null}
+            </tbody>
+          </table>
+        </div>
+      </Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-4xl">
+        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>{form.id ? "Edit module" : "Create module"}</DialogTitle>
-            <DialogDescription>
-              Type A is text content. Type B is a PDF upload with optional notes.
-            </DialogDescription>
+            <DialogDescription>Save lesson details and content.</DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="md:col-span-2">
-              <label className="mb-2 block text-sm font-medium text-slate-700">Title</label>
-              <input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} className="w-full rounded-2xl border border-slate-200 px-4 py-3" />
-            </div>
-            <div className="md:col-span-2">
-              <label className="mb-2 block text-sm font-medium text-slate-700">Description</label>
-              <textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} rows={3} className="w-full rounded-2xl border border-slate-200 px-4 py-3" />
-            </div>
-            <div className="md:col-span-2">
-              <label className="mb-2 block text-sm font-medium text-slate-700">Assignment / test text</label>
-              <textarea value={form.assignment} onChange={(event) => setForm({ ...form, assignment: event.target.value })} rows={4} className="w-full rounded-2xl border border-slate-200 px-4 py-3" placeholder="Add the assignment, task, or test instructions for this topic" />
-            </div>
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">Type</label>
-              <select value={form.type} onChange={(event) => setForm({ ...form, type: event.target.value as ModuleType, pdfUrl: event.target.value === "pdf" ? form.pdfUrl : "" })} className="w-full rounded-2xl border border-slate-200 px-4 py-3">
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="space-y-1 md:col-span-2">
+              <span className="text-sm font-medium text-foreground">Title</span>
+              <input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+            </label>
+            <label className="space-y-1 md:col-span-2">
+              <span className="text-sm font-medium text-foreground">Description</span>
+              <textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} rows={2} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+            </label>
+            <label className="space-y-1">
+              <span className="text-sm font-medium text-foreground">Type</span>
+              <select value={form.type} onChange={(event) => setForm({ ...form, type: event.target.value as ModuleType })} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
                 <option value="text">Text</option>
                 <option value="pdf">PDF</option>
+                <option value="video">Video</option>
               </select>
-            </div>
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">Order</label>
-              <input type="number" value={form.order} onChange={(event) => setForm({ ...form, order: Number(event.target.value) })} className="w-full rounded-2xl border border-slate-200 px-4 py-3" />
-            </div>
+            </label>
+            <label className="space-y-1">
+              <span className="text-sm font-medium text-foreground">Order</span>
+              <input type="number" value={form.order} onChange={(event) => setForm({ ...form, order: Number(event.target.value) })} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+            </label>
+            {form.type === "text" ? (
+              <label className="space-y-1 md:col-span-2">
+                <span className="text-sm font-medium text-foreground">HTML content</span>
+                <textarea value={form.content} onChange={(event) => setForm({ ...form, content: event.target.value })} rows={8} className="w-full rounded-lg border border-border bg-background px-3 py-2 font-mono text-sm" placeholder="<h2>Lesson</h2><p>Content...</p>" />
+              </label>
+            ) : form.type === "pdf" ? (
+              <div className="space-y-3 md:col-span-2">
+                <label className="space-y-1">
+                  <span className="text-sm font-medium text-foreground">PDF file</span>
+                  <input type="file" accept="application/pdf" onChange={(event) => setPdfFile(event.target.files?.[0] || null)} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+                </label>
+                <label className="space-y-1">
+                  <span className="text-sm font-medium text-foreground">Notes</span>
+                  <textarea value={form.content} onChange={(event) => setForm({ ...form, content: event.target.value })} rows={3} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+                </label>
+              </div>
+            ) : (
+              <div className="space-y-3 md:col-span-2">
+                <label className="space-y-1">
+                  <span className="text-sm font-medium text-foreground">Video URL</span>
+                  <input value={form.pdfUrl} onChange={(event) => setForm({ ...form, pdfUrl: event.target.value })} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" placeholder="https://..." />
+                </label>
+                <label className="space-y-1">
+                  <span className="text-sm font-medium text-foreground">Notes</span>
+                  <textarea value={form.content} onChange={(event) => setForm({ ...form, content: event.target.value })} rows={3} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+                </label>
+              </div>
+            )}
+            <label className="space-y-1 md:col-span-2">
+              <span className="text-sm font-medium text-foreground">Assignment</span>
+              <textarea value={form.assignment} onChange={(event) => setForm({ ...form, assignment: event.target.value })} rows={3} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+            </label>
           </div>
 
-          {form.type === "text" ? (
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">Rich text content</label>
-              {quillReady ? (
-                <Suspense fallback={<div className="h-40 rounded bg-slate-50">Loading editor…</div>}>
-                  <ReactQuill theme="snow" value={form.content} onChange={(value) => setForm({ ...form, content: value })} className="rounded-2xl bg-white" />
-                </Suspense>
-              ) : (
-                <textarea value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} className="h-40 w-full rounded-2xl border px-4 py-3" />
-              )}
+          {pdfFile ? (
+            <div className="space-y-2 rounded-lg bg-muted p-3 text-sm text-muted-foreground">
+              <p>Upload {uploadProgress}%</p>
+              <div className="h-2 overflow-hidden rounded-full bg-background"><div className="h-full rounded-full bg-primary" style={{ width: `${uploadProgress}%` }} /></div>
             </div>
-          ) : (
-            <div className="space-y-4">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">PDF file</label>
-                <input type="file" accept="application/pdf" onChange={(event) => setPdfFile(event.target.files?.[0] || null)} className="w-full rounded-2xl border border-slate-200 px-4 py-2" />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">Lesson notes</label>
-                <input value={form.content} onChange={(event) => setForm({ ...form, content: event.target.value })} placeholder="Optional notes for the PDF lesson" className="w-full rounded-2xl border border-slate-200 px-4 py-3" />
-              </div>
-            </div>
-          )}
+          ) : null}
 
-          {pdfFile ? <div className="space-y-2 rounded-2xl bg-slate-50 p-4 text-sm text-slate-600"><p>PDF upload progress</p><div className="h-2 overflow-hidden rounded-full bg-slate-200"><div className="h-full rounded-full bg-primary transition-all" style={{ width: `${uploadProgress}%` }} /></div></div> : null}
-
-          <div className="flex justify-end gap-3">
-            <button onClick={() => setDialogOpen(false)} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700">Cancel</button>
-            <button onClick={() => void handleSave()} disabled={saving} className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-primary to-accent px-4 py-3 text-sm font-semibold text-white disabled:opacity-70">
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setDialogOpen(false)} className="rounded-lg border border-border px-3 py-2 text-sm font-semibold text-foreground">Cancel</button>
+            <button onClick={() => void handleSave()} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-70">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {saving ? "Saving" : "Save module"}
+              Save module
             </button>
           </div>
         </DialogContent>
@@ -336,14 +325,11 @@ export default function AdminCourseModules() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Delete module?</DialogTitle>
-            <DialogDescription>
-              This will permanently remove the selected module.
-            </DialogDescription>
+            <DialogDescription>This cannot be undone.</DialogDescription>
           </DialogHeader>
-          <p className="text-sm text-slate-600">This action cannot be undone.</p>
-          <div className="flex justify-end gap-3">
-            <button onClick={() => setDeleteTarget(null)} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700">Cancel</button>
-            <button onClick={() => void handleDelete()} className="rounded-2xl bg-red-600 px-4 py-3 text-sm font-semibold text-white">Delete</button>
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setDeleteTarget(null)} className="rounded-lg border border-border px-3 py-2 text-sm font-semibold text-foreground">Cancel</button>
+            <button onClick={() => void handleDelete()} className="rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white">Delete</button>
           </div>
         </DialogContent>
       </Dialog>

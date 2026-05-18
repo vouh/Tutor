@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { BarChart3, BookOpen, CreditCard, LayoutDashboard, Menu, MoonStar, SunMedium, Users, X } from "lucide-react";
+import { BarChart3, Bell, BookOpen, CreditCard, LayoutDashboard, Menu, MoonStar, SunMedium, Users, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { useTheme } from "next-themes";
@@ -11,6 +11,7 @@ const navItems = [
   { label: "Courses", to: "/admin/courses", icon: BookOpen },
   { label: "Modules", to: "/admin/modules", icon: BarChart3 },
   { label: "Users", to: "/admin/users", icon: Users },
+  { label: "Notifications", to: "/admin/notifications", icon: Bell },
   { label: "Payments", to: "/admin/payments", icon: CreditCard },
 ];
 
@@ -24,6 +25,7 @@ export function AdminLayout() {
 
   const currentTitle = useMemo(() => {
     if (location.pathname.includes("/payments")) return "Payments";
+    if (location.pathname.includes("/notifications")) return "Notifications";
     if (location.pathname.includes("/users")) return "Users";
     if (location.pathname.includes("/modules")) return "Modules";
     if (location.pathname.includes("/courses")) return "Courses";
@@ -31,16 +33,16 @@ export function AdminLayout() {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen bg-background text-foreground lg:flex">
-      <aside className="hidden w-72 shrink-0 border-r border-border bg-card lg:flex lg:flex-col">
-        <div className="flex items-center gap-3 border-b border-slate-100 px-6 py-5">
-          <img src={activeLogo} alt="Tutor" className="h-11 w-11 rounded-2xl object-cover" />
+    <div className="min-h-screen bg-muted/25 text-foreground lg:flex">
+      <aside className="hidden w-60 shrink-0 border-r border-border bg-card lg:flex lg:flex-col">
+        <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+          <img src={activeLogo} alt="Tutor" className="h-9 w-9 rounded-lg object-cover" />
           <div>
             <p className="text-sm font-semibold text-foreground">Tutor Admin</p>
-            <p className="text-xs text-muted-foreground">{user?.email}</p>
+            <p className="max-w-40 truncate text-xs text-muted-foreground">{user?.email}</p>
           </div>
         </div>
-        <nav className="flex-1 space-y-1 px-4 py-5">
+        <nav className="flex-1 space-y-1 px-3 py-3">
           {navItems.map((item) => {
             const active = location.pathname.startsWith(item.to);
             const Icon = item.icon;
@@ -48,7 +50,7 @@ export function AdminLayout() {
               <NavLink
                 key={item.label}
                 to={item.to}
-                className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-colors ${
+                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 }`}
               >
@@ -58,10 +60,10 @@ export function AdminLayout() {
             );
           })}
         </nav>
-        <div className="border-t border-slate-100 p-4">
+        <div className="border-t border-border p-3">
           <button
             onClick={() => void logout()}
-            className="w-full rounded-2xl border border-border px-4 py-3 text-sm font-semibold text-foreground transition hover:border-primary hover:text-primary"
+            className="w-full rounded-lg border border-border px-3 py-2 text-sm font-semibold text-foreground transition hover:border-primary hover:text-primary"
           >
             Sign out
           </button>
@@ -80,7 +82,7 @@ export function AdminLayout() {
                   <p className="text-xs text-muted-foreground">{user?.email}</p>
                 </div>
               </div>
-              <button onClick={() => setMobileOpen(false)} className="rounded-xl p-2 text-slate-500 hover:bg-slate-100">
+              <button onClick={() => setMobileOpen(false)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -93,7 +95,7 @@ export function AdminLayout() {
                     key={item.label}
                     to={item.to}
                     onClick={() => setMobileOpen(false)}
-                    className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-colors ${
+                    className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                       active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"
                     }`}
                   >
@@ -108,33 +110,33 @@ export function AdminLayout() {
       )}
 
       <div className="flex min-h-screen flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-border bg-card px-4 py-4 sm:px-6 lg:px-8">
+        <header className="flex items-center justify-between border-b border-border bg-card px-4 py-3 sm:px-5 lg:px-6">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setMobileOpen(true)}
-              className="rounded-2xl border border-border p-2 text-foreground lg:hidden"
+              className="rounded-lg border border-border p-2 text-foreground lg:hidden"
             >
               <Menu className="h-5 w-5" />
             </button>
             <div>
-              <p className="text-xs uppercase tracking-[0.28em] text-muted-foreground">Admin</p>
-              <h1 className="text-xl font-bold text-foreground">{currentTitle}</h1>
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Admin</p>
+              <h1 className="text-lg font-bold text-foreground">{currentTitle}</h1>
             </div>
           </div>
           <div className="hidden items-center gap-2 sm:flex">
             <button
               onClick={() => setTheme(isDark ? "light" : "dark")}
-              className="inline-flex items-center gap-2 rounded-2xl border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:border-primary hover:text-primary"
+              className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition hover:border-primary hover:text-primary"
             >
               {isDark ? <SunMedium className="h-4 w-4" /> : <MoonStar className="h-4 w-4" />}
               {isDark ? "Light theme" : "Dark theme"}
             </button>
-            <div className="rounded-2xl bg-muted px-4 py-2 text-sm text-muted-foreground">
+            <div className="rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">
               Signed in as <span className="font-semibold text-foreground">{user?.email}</span>
             </div>
           </div>
         </header>
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+        <main className="flex-1 px-3 py-3 sm:px-4 lg:px-5">
           <Outlet />
         </main>
       </div>
