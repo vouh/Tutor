@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, GripVertical, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { deleteModule, getCourse, getModules, reorderModules, saveModule, uploadModulePdf, type CourseRecord, type ModuleRecord, type ModuleType } from "@/lib/adminData";
@@ -273,7 +275,9 @@ export default function AdminCourseModules() {
             {form.type === "text" ? (
               <label className="space-y-1 md:col-span-2">
                 <span className="text-sm font-medium text-foreground">HTML content</span>
-                <textarea value={form.content} onChange={(event) => setForm({ ...form, content: event.target.value })} rows={8} className="w-full rounded-lg border border-border bg-background px-3 py-2 font-mono text-sm" placeholder="<h2>Lesson</h2><p>Content...</p>" />
+                <div className="w-full rounded-lg border border-border bg-background p-0 text-sm">
+                  <ReactQuill value={form.content} onChange={(value) => setForm({ ...form, content: value })} theme="snow" />
+                </div>
               </label>
             ) : form.type === "pdf" ? (
               <div className="space-y-3 md:col-span-2">
