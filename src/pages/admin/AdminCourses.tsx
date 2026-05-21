@@ -352,31 +352,33 @@ export default function AdminCourses() {
       </Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>{form.id ? "Edit course" : "Create course"}</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="max-h-[88vh] overflow-y-auto rounded-2xl p-0 sm:max-w-2xl">
+          <div className="border-b border-border px-5 py-4">
+          <DialogHeader className="space-y-1">
+            <DialogTitle className="text-xl font-semibold">{form.id ? "Edit course" : "Create course"}</DialogTitle>
+            <DialogDescription className="text-sm">
               Fill in course details, then save to continue managing modules.
             </DialogDescription>
           </DialogHeader>
+          </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-3 px-5 py-4 md:grid-cols-2">
             <div className="md:col-span-2">
-              <label className="mb-2 block text-sm font-medium text-slate-700">Title</label>
-              <input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} className="w-full rounded-2xl border border-slate-200 px-4 py-3" />
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Title</label>
+              <input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} className="w-full rounded-xl border border-border px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10" />
             </div>
-            <div className="md:col-span-2 space-y-3">
-              <label className="mb-2 block text-sm font-medium text-slate-700">Thumbnail</label>
-              <div className="grid gap-4 md:grid-cols-[180px,1fr]">
-                <div className="overflow-hidden rounded-2xl border border-dashed border-slate-300 bg-slate-50">
+            <div className="md:col-span-2 space-y-2.5">
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Thumbnail</label>
+              <div className="grid gap-3 md:grid-cols-[150px,1fr]">
+                <div className="overflow-hidden rounded-xl border border-dashed border-border bg-muted">
                   <img
                     src={thumbnailPreview || form.thumbnailUrl || "https://placehold.co/640x360"}
                     alt={form.title || "Course thumbnail preview"}
-                    className="h-40 w-full object-cover"
+                    className="h-32 w-full object-cover"
                   />
                 </div>
-                <div className="space-y-3">
-                  <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 hover:border-primary hover:text-primary">
+                <div className="space-y-2.5">
+                  <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:border-primary hover:text-primary">
                     <Upload className="h-4 w-4" />
                     Upload thumbnail image
                     <input
@@ -386,46 +388,46 @@ export default function AdminCourses() {
                       onChange={(event) => handleThumbnailChange(event.target.files?.[0] || null)}
                     />
                   </label>
-                  <p className="text-xs text-slate-500">Required. Use a clean landscape image for the course card.</p>
-                  {thumbnailFile ? <p className="text-xs font-medium text-slate-700">Selected: {thumbnailFile.name}</p> : null}
+                  <p className="text-xs text-muted-foreground">Required. Use a clean landscape image for the course card.</p>
+                  {thumbnailFile ? <p className="text-xs font-medium text-foreground">Selected: {thumbnailFile.name}</p> : null}
                 </div>
               </div>
             </div>
             <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">Category</label>
-              <input value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })} className="w-full rounded-2xl border border-slate-200 px-4 py-3" placeholder="e.g. Mathematics" />
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Category</label>
+              <input value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })} className="w-full rounded-xl border border-border px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10" placeholder="e.g. Mathematics" />
             </div>
             <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">Level</label>
-              <select value={form.level} onChange={(event) => setForm({ ...form, level: event.target.value as CourseLevel })} className="w-full rounded-2xl border border-slate-200 px-4 py-3">
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Level</label>
+              <select value={form.level} onChange={(event) => setForm({ ...form, level: event.target.value as CourseLevel })} className="w-full rounded-xl border border-border px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10">
                 {levels.map((level) => <option key={level}>{level}</option>)}
               </select>
             </div>
             <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">Module count</label>
-              <input value={form.moduleCount} onChange={(event) => setForm({ ...form, moduleCount: event.target.value })} type="number" min="1" className="w-full rounded-2xl border border-slate-200 px-4 py-3" />
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Module count</label>
+              <input value={form.moduleCount} onChange={(event) => setForm({ ...form, moduleCount: event.target.value })} type="number" min="1" className="w-full rounded-xl border border-border px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10" />
             </div>
             <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">Price (KES)</label>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Price (KES)</label>
               {form.isFree ? (
-                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">This course is marked free, so price is disabled.</div>
+                <div className="rounded-xl border border-dashed border-border bg-muted px-3 py-2.5 text-sm text-muted-foreground">This course is marked free, so price is disabled.</div>
               ) : (
-                <input value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} type="number" min="0" className="w-full rounded-2xl border border-slate-200 px-4 py-3" />
+                <input value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} type="number" min="0" className="w-full rounded-xl border border-border px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10" />
               )}
             </div>
             <div className="md:col-span-2">
-              <label className="mb-2 block text-sm font-medium text-slate-700">Description</label>
-              <textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} rows={5} className="w-full rounded-2xl border border-slate-200 px-4 py-3" />
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Description</label>
+              <textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} rows={4} className="w-full rounded-xl border border-border px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10" />
             </div>
             <div className="md:col-span-2">
-              <label className="mb-2 block text-sm font-medium text-slate-700">Course summary</label>
-              <textarea value={form.summary} onChange={(event) => setForm({ ...form, summary: event.target.value })} rows={4} className="w-full rounded-2xl border border-slate-200 px-4 py-3" placeholder="Short summary of what the course will cover" />
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Course summary</label>
+              <textarea value={form.summary} onChange={(event) => setForm({ ...form, summary: event.target.value })} rows={3} className="w-full rounded-xl border border-border px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10" placeholder="Short summary of what the course will cover" />
             </div>
             <div className="md:col-span-2">
-              <label className="mb-2 block text-sm font-medium text-slate-700">Instructions</label>
-              <textarea value={form.instructions} onChange={(event) => setForm({ ...form, instructions: event.target.value })} rows={4} className="w-full rounded-2xl border border-slate-200 px-4 py-3" placeholder="Optional course instructions or notes for students" />
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Instructions</label>
+              <textarea value={form.instructions} onChange={(event) => setForm({ ...form, instructions: event.target.value })} rows={3} className="w-full rounded-xl border border-border px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10" placeholder="Optional course instructions or notes for students" />
             </div>
-            <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+            <label className="flex items-center gap-2 text-sm font-medium text-foreground">
               <input
                 type="checkbox"
                 checked={form.isFree}
@@ -433,14 +435,14 @@ export default function AdminCourses() {
               />
               Free course
             </label>
-            <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+            <label className="flex items-center gap-2 text-sm font-medium text-foreground">
               <input type="checkbox" checked={form.isPublished} onChange={(event) => setForm({ ...form, isPublished: event.target.checked })} /> Published
             </label>
           </div>
 
-          <div className="flex justify-end gap-3">
-            <button onClick={() => setDialogOpen(false)} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700">Cancel</button>
-            <button onClick={() => void handleSave()} disabled={saving} className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-primary to-accent px-4 py-3 text-sm font-semibold text-white disabled:opacity-70">
+          <div className="flex justify-end gap-3 border-t border-border px-5 py-4">
+            <button onClick={() => setDialogOpen(false)} className="rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-foreground">Cancel</button>
+            <button onClick={() => void handleSave()} disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-70">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {saving ? "Saving" : "Save course"}
             </button>

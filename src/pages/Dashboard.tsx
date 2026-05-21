@@ -173,8 +173,6 @@ const Dashboard = () => {
                 <div className="flex h-16 w-16 items-center justify-center rounded-[1.5rem] bg-white/15 text-xl font-bold text-white">
                   {displayName.slice(0, 2).toUpperCase() || "TU"}
                 </div>
-                <h2 className="mt-4 text-2xl font-semibold leading-tight text-white">{displayName}</h2>
-                <p className="mt-1 text-sm text-white/75">{displayEmail}</p>
               </div>
               <Button type="button" variant="outline" size="icon" onClick={() => setSettingsOpen(true)} className="shrink-0 rounded-2xl border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white">
                 <Settings2 className="h-4 w-4" />
