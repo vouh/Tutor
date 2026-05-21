@@ -69,6 +69,29 @@ export interface PaymentRecord {
   paidAt: Timestamp | null;
   checkoutRequestId?: string;
   phoneNumber?: string;
+  requestId?: string;
+}
+
+export type PaymentRequestPurpose = "course" | "module" | "week" | "custom";
+
+export interface PaymentRequestRecord {
+  id?: string;
+  title: string;
+  message: string;
+  amount: number;
+  audience: "all" | "selected";
+  targetUserIds: string[];
+  courseId: string;
+  courseName?: string;
+  moduleId: string;
+  moduleName?: string;
+  purpose: PaymentRequestPurpose;
+  dueDate?: Timestamp | null;
+  isActive: boolean;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+  createdBy?: string;
+  createdByEmail?: string;
 }
 
 export interface UserRecord {
@@ -142,6 +165,7 @@ export interface ActivityItem {
 const coursesRef = collection(db, "courses");
 const modulesRef = collection(db, "modules");
 const paymentsRef = collection(db, "payments");
+const paymentRequestsRef = collection(db, "paymentRequests");
 const usersRef = collection(db, "users");
 const learnersRef = collection(db, "learners");
 const notificationsRef = collection(db, "notifications");
@@ -566,6 +590,32 @@ export async function deleteNotification(notificationId: string) {
 export async function getPayments() {
   const snapshot = await getDocs(query(paymentsRef, orderBy("paidAt", "desc")));
   return snapshot.docs.map((document) => ({ id: document.id, ...document.data() } as PaymentRecord));
+}
+
+export async function getPaymentRequests() {
+  const snapshot = await getDocs(query(paymentRequestsRef, orderBy("createdAt", "desc")));
+  return snapshot.docs.map((document) => ({ id: document.id, ...document.data() } as PaymentRequestRecord));
+}
+
+export async function createPaymentRequest(request: Omit<PaymentRequestRecord, "id" | "createdAt" | "updatedAt">) {
+  return addDoc(paymentRequestsRef, {
+    ...request,
+    amount: Number(request.amount || 0),
+    targetUserIds: request.audience === "selected" ? request.targetUserIds : [],
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function updatePaymentRequestStatus(requestId: string, isActive: boolean) {
+  await updateDoc(doc(paymentRequestsRef, requestId), {
+    isActive,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function deletePaymentRequest(requestId: string) {
+  await deleteDoc(doc(paymentRequestsRef, requestId));
 }
 
 export async function getPaymentForModule(userId: string, courseId: string, moduleId: string) {

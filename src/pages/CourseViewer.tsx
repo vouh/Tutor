@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, ChevronLeft, ChevronRight, FileText, Home, LayoutDashboard, Loader2, Menu, MoonStar, PlayCircle, SunMedium, X } from "lucide-react";
-import { useTheme } from "next-themes";
+import { ArrowRight, BookOpen, CheckCircle2, ChevronLeft, ChevronRight, FileText, Loader2, Menu, PlayCircle, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { getCourse, getModules, type CourseRecord, type ModuleRecord } from "@/lib/adminData";
 import { getCompletedModuleIds, getEnrollmentStatus, markModuleComplete, verifySession, type LearnerRecord } from "@/lib/learnerData";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 
 function RichContent({ html }: { html?: string }) {
   return (
@@ -26,8 +27,6 @@ export default function CourseViewer() {
   const [completedIds, setCompletedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const { theme, setTheme } = useTheme();
-  const isDark = theme === "dark";
 
   useEffect(() => {
     if (!id) return;
@@ -72,6 +71,11 @@ export default function CourseViewer() {
 
   const progress = modules.length > 0 ? Math.round((completedIds.length / modules.length) * 100) : 0;
   const isCompleted = activeModule?.id ? completedIds.includes(activeModule.id) : false;
+  const navItems = [
+    { label: "Home", path: "/", icon: BookOpen },
+    { label: "Dashboard", path: "/dashboard", icon: BookOpen },
+    { label: "Courses", path: "/courses", icon: BookOpen },
+  ];
 
   const openModule = (module: ModuleRecord) => {
     if (!id || !module.id) return;
@@ -87,9 +91,14 @@ export default function CourseViewer() {
 
   const handleComplete = async () => {
     if (!id || !activeModule?.id || !learner) return;
-    await markModuleComplete(learner.email, id, activeModule.id);
-    setCompletedIds(await getCompletedModuleIds(learner.email, id));
-    toast.success("Module marked complete");
+    try {
+      await markModuleComplete(learner.email, id, activeModule.id);
+      setCompletedIds(prev => Array.from(new Set([...prev, activeModule.id!])));
+      toast.success("Module marked complete");
+    } catch (err) {
+      console.error("Failed to mark module complete:", err);
+      toast.error("Failed to mark module complete. Please try again.");
+    }
   };
 
   const contentType = activeModule?.type === "video" ? "video" : activeModule?.type === "pdf" ? "pdf" : "text";
@@ -108,29 +117,23 @@ export default function CourseViewer() {
     return <div className="min-h-screen bg-slate-50 p-8 text-slate-600 dark:bg-slate-950 dark:text-slate-300">Course not found.</div>;
   }
 
-  const navItems = [
-    { label: "Home", path: "/", icon: Home },
-    { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
-    { label: "Courses", path: "/courses", icon: BookOpen },
-  ];
-
   const sidebar = (
-    <aside className="flex h-full flex-col border-r border-slate-200 bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
-      <div className="border-b border-slate-100 p-5 dark:border-slate-800">
+    <aside className="flex h-full flex-col border-r border-border bg-card/95 text-card-foreground backdrop-blur">
+      <div className="border-b border-border p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">Course</p>
-            <h1 className="mt-2 text-xl font-bold leading-tight text-slate-950 dark:text-white">{course.title}</h1>
-            <p className="mt-2 line-clamp-2 text-sm leading-5 text-slate-500 dark:text-slate-400">{course.description}</p>
+            <h1 className="mt-2 text-xl font-bold leading-tight text-foreground">{course.title}</h1>
+            <p className="mt-2 line-clamp-2 text-sm leading-5 text-muted-foreground">{course.description}</p>
           </div>
-          <button onClick={() => setMobileSidebarOpen(false)} className="rounded-md p-2 text-slate-500 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 lg:hidden">
+          <button onClick={() => setMobileSidebarOpen(false)} className="rounded-md p-2 text-muted-foreground hover:bg-muted lg:hidden">
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+        <div className="mt-5 h-2 overflow-hidden rounded-full bg-muted">
           <div className="h-full rounded-full bg-gradient-to-r from-primary to-red-400 transition-all" style={{ width: `${progress}%` }} />
         </div>
-        <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{completedIds.length} of {modules.length} modules completed</p>
+        <p className="mt-2 text-xs text-muted-foreground">{completedIds.length} of {modules.length} modules completed</p>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3">
@@ -143,16 +146,16 @@ export default function CourseViewer() {
               onClick={() => openModule(module)}
               className={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition ${
                 active
-                  ? "bg-primary/10 text-primary ring-1 ring-primary/15 dark:bg-primary/15 dark:ring-primary/25"
-                  : "text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-900"
+                    ? "bg-primary/10 text-primary ring-1 ring-primary/15"
+                    : "text-foreground hover:bg-muted"
               }`}
             >
-              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${active ? "bg-primary text-white" : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-300"}`}>
+                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${active ? "bg-primary text-white" : "bg-muted text-muted-foreground"}`}>
                 {done ? <CheckCircle2 className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-semibold">Module {module.order}: {module.title}</span>
-                <span className="block text-xs text-slate-500 dark:text-slate-400">{module.type.toUpperCase()}</span>
+                  <span className="block text-xs text-muted-foreground">{module.type.toUpperCase()}</span>
               </span>
             </button>
           );
@@ -162,108 +165,83 @@ export default function CourseViewer() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-white">
-      <div className="flex min-h-screen">
-        <div className="hidden w-84 shrink-0 lg:block lg:w-[22rem]">{sidebar}</div>
-        {mobileSidebarOpen ? <div className="fixed inset-0 z-40 lg:hidden"><div className="absolute inset-0 bg-black/40" onClick={() => setMobileSidebarOpen(false)} /><div className="absolute inset-y-0 left-0 w-80 max-w-[86vw]">{sidebar}</div></div> : null}
+      <div className="min-h-screen bg-background text-foreground">
+        <Header />
 
-        <div className="flex min-h-screen flex-1 flex-col">
-          <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/90 sm:px-6">
-            <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
-              <div className="flex min-w-0 items-center gap-3">
-                <button onClick={() => setMobileSidebarOpen(true)} className="rounded-md border border-slate-200 p-2 text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-900 lg:hidden">
-                  <Menu className="h-5 w-5" />
-                </button>
-                <div className="min-w-0">
-                  <Link to="/dashboard" className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 hover:text-primary dark:text-slate-400">
-                    <ArrowLeft className="h-3.5 w-3.5" /> Dashboard
-                  </Link>
-                  <h2 className="mt-1 truncate text-lg font-bold text-slate-950 dark:text-white">{activeModule?.title || course.title}</h2>
-                </div>
-              </div>
-              <div className="hidden items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-slate-800 dark:bg-slate-900 md:flex">
-                {navItems.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <Link key={item.path} to={item.path} className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-white hover:text-primary dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white">
-                      <Icon className="h-4 w-4" />
-                      {item.label}
-                    </Link>
-                  );
-                })}
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setTheme(isDark ? "light" : "dark")}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-                  aria-label="Toggle theme"
-                >
-                  {isDark ? <SunMedium className="h-4 w-4" /> : <MoonStar className="h-4 w-4" />}
-                </button>
-                <Button onClick={() => void handleComplete()} disabled={isCompleted || !activeModule} className="hidden rounded-md sm:inline-flex">
-                  {isCompleted ? "Completed" : "Mark complete"}
-                </Button>
-              </div>
-            </div>
-          </header>
+        <div className="flex min-h-screen flex-col pt-16">
+          <div className="flex flex-1">
+            <div className="hidden w-84 shrink-0 lg:block lg:w-[22rem]">{sidebar}</div>
+            {mobileSidebarOpen ? <div className="fixed inset-0 z-40 lg:hidden"><div className="absolute inset-0 bg-black/40" onClick={() => setMobileSidebarOpen(false)} /><div className="absolute inset-y-0 left-0 w-80 max-w-[86vw]">{sidebar}</div></div> : null}
 
-          <main className="flex-1 bg-[radial-gradient(circle_at_top_left,_rgba(220,38,38,0.08),_transparent_32%),linear-gradient(180deg,_rgba(248,250,252,1),_rgba(241,245,249,1))] px-4 py-6 dark:bg-[radial-gradient(circle_at_top_left,_rgba(220,38,38,0.18),_transparent_34%),linear-gradient(180deg,_rgba(2,6,23,1),_rgba(15,23,42,1))] sm:px-6">
+          <main className="flex-1 bg-[linear-gradient(180deg,_rgba(255,255,255,0.85),_rgba(247,248,250,1))] px-4 py-6 sm:px-6 dark:bg-[linear-gradient(180deg,_rgba(2,6,23,1),_rgba(15,23,42,1))]">
             <div className="mx-auto grid max-w-7xl gap-6 xl:grid-cols-[minmax(0,1fr),320px]">
-              <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/90">
-                <div className="border-b border-slate-100 p-6 dark:border-slate-800">
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">Module {activeModule?.order || "-"}</p>
-                  <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 dark:text-white">{activeModule?.title || "Select a module"}</h1>
-                  {activeModule?.description ? <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{activeModule.description}</p> : null}
+              <section className="overflow-hidden rounded-[1.5rem] border border-border bg-card shadow-sm">
+                <div className="border-b border-border px-6 py-5">
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">Module {activeModule?.order || "-"}</p>
+                      <h1 className="mt-2 text-3xl font-bold tracking-tight text-foreground">{activeModule?.title || "Select a module"}</h1>
+                      {activeModule?.description ? <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{activeModule.description}</p> : null}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <Button variant="outline" onClick={() => setMobileSidebarOpen(true)} className="gap-2 rounded-full lg:hidden">
+                        <Menu className="h-4 w-4" /> Modules
+                      </Button>
+                      <Button onClick={() => void handleComplete()} disabled={isCompleted || !activeModule} className="rounded-full px-5">
+                        {isCompleted ? "Completed" : "Mark complete"}
+                      </Button>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="min-h-[62vh] p-6">
+                <div className="min-h-[62vh] px-6 py-6">
                   {contentType === "pdf" && activeModule?.pdfUrl ? (
                     <div className="space-y-6">
-                      <iframe title={activeModule.title} src={activeModule.pdfUrl} className="h-[70vh] w-full rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-950" />
+                      <iframe title={activeModule.title} src={activeModule.pdfUrl} className="h-[70vh] w-full rounded-2xl border border-border bg-muted" />
                       {activeModule.content ? <RichContent html={activeModule.content} /> : null}
                     </div>
                   ) : contentType === "video" && activeModule?.pdfUrl ? (
                     <div className="space-y-6">
-                      <iframe title={activeModule.title} src={activeModule.pdfUrl} allowFullScreen className="aspect-video w-full rounded-lg border border-slate-200 bg-black dark:border-slate-800" />
+                      <iframe title={activeModule.title} src={activeModule.pdfUrl} allowFullScreen className="aspect-video w-full rounded-2xl border border-border bg-black" />
                       {activeModule.content ? <RichContent html={activeModule.content} /> : null}
                     </div>
                   ) : activeModule ? (
                     <RichContent html={activeModule.content} />
                   ) : (
-                    <div className="flex min-h-[50vh] items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-400">Select a module to begin.</div>
+                    <div className="flex min-h-[50vh] items-center justify-center rounded-2xl border border-dashed border-border bg-muted text-muted-foreground">Select a module to begin.</div>
                   )}
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 p-5 dark:border-slate-800">
-                  <Button variant="outline" onClick={() => moveModule("previous")} disabled={activeIndex <= 0} className="gap-2 rounded-md">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-6 py-5">
+                  <Button variant="outline" onClick={() => moveModule("previous")} disabled={activeIndex <= 0} className="gap-2 rounded-full">
                     <ChevronLeft className="h-4 w-4" /> Previous Module
                   </Button>
-                  <Button onClick={() => moveModule("next")} disabled={activeIndex < 0 || activeIndex >= modules.length - 1} className="gap-2 rounded-md">
+                  <Button onClick={() => moveModule("next")} disabled={activeIndex < 0 || activeIndex >= modules.length - 1} className="gap-2 rounded-full">
                     Next Module <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
               </section>
 
               <aside className="space-y-4">
-                <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/90">
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">Status</p>
-                  <p className="mt-3 text-3xl font-bold text-slate-950 dark:text-white">{progress}% complete</p>
-                  <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                <div className="rounded-[1.5rem] border border-border bg-card p-5 shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Status</p>
+                  <p className="mt-3 text-3xl font-bold text-foreground">{progress}% complete</p>
+                  <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
                     <div className="h-full rounded-full bg-gradient-to-r from-primary to-red-400" style={{ width: `${progress}%` }} />
                   </div>
-                  <Button onClick={() => void handleComplete()} disabled={isCompleted || !activeModule} className="mt-4 w-full rounded-md">
+                  <Button onClick={() => void handleComplete()} disabled={isCompleted || !activeModule} className="mt-4 w-full rounded-full">
                     {isCompleted ? "Completed" : "Mark as Complete"}
                   </Button>
                 </div>
 
-                <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/90">
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">Content</p>
-                  <div className="mt-3 flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
+                <div className="rounded-[1.5rem] border border-border bg-card p-5 shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Content</p>
+                  <div className="mt-3 flex items-center gap-3 text-sm text-muted-foreground">
                     <PlayCircle className="h-5 w-5 text-primary" />
                     <span>{modules.length} modules available</span>
                   </div>
                   {activeModule?.assignment ? (
-                    <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-100">
+                    <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
                       <span className="font-semibold">Assignment: </span>{activeModule.assignment}
                     </div>
                   ) : null}
@@ -274,11 +252,11 @@ export default function CourseViewer() {
                   ) : null}
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 rounded-lg border border-slate-200 bg-white p-2 shadow-sm dark:border-slate-800 dark:bg-slate-900/90 md:hidden">
+                <div className="grid grid-cols-3 gap-2 rounded-[1.5rem] border border-border bg-card p-2 shadow-sm md:hidden">
                   {navItems.map((item) => {
                     const Icon = item.icon;
                     return (
-                      <Link key={item.path} to={item.path} className="flex flex-col items-center gap-1 rounded-md px-2 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-primary dark:text-slate-300 dark:hover:bg-slate-800">
+                      <Link key={item.path} to={item.path} className="flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs font-semibold text-muted-foreground hover:bg-muted hover:text-foreground">
                         <Icon className="h-4 w-4" />
                         {item.label}
                       </Link>
@@ -289,7 +267,8 @@ export default function CourseViewer() {
             </div>
           </main>
         </div>
-      </div>
+
+        <Footer />
     </div>
   );
 }

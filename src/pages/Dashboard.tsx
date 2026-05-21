@@ -4,16 +4,18 @@ import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowRight, Bell, BookOpen, ChevronRight, Eye, Home, LogOut, Mail, MapPin, Settings2, User } from "lucide-react";
+import { ArrowRight, Bell, BookOpen, ChevronRight, CreditCard, Eye, Home, LogOut, Mail, MapPin, Settings2, User } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import PaymentModal from "@/components/PaymentModal";
 import { useAuth } from "@/contexts/AuthContext";
-import { asDate, getUserDetails, updateUserProfileRecord, type LearnerPaymentEntry, type NotificationRecord, type UserCourseRecord, type UserDetailsRecord } from "@/lib/adminData";
+import { asDate, getUserDetails, updateUserProfileRecord, type NotificationRecord, type PaymentRequestRecord, type UserCourseRecord, type UserDetailsRecord } from "@/lib/adminData";
 import { getCourseById, type Course } from "@/lib/firestore";
 import { db } from "@/lib/firebase";
 import { toast } from "sonner";
 
 type DashboardNotification = NotificationRecord & { id: string };
+type DashboardPaymentRequest = PaymentRequestRecord & { id: string };
 
 type ProfileFormState = {
   fullName: string;
@@ -30,9 +32,13 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [paymentsOpen, setPaymentsOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<(UserCourseRecord & { course?: Course | null }) | null>(null);
+  const [selectedPaymentRequest, setSelectedPaymentRequest] = useState<DashboardPaymentRequest | null>(null);
   const [notificationItems, setNotificationItems] = useState<DashboardNotification[]>([]);
+  const [paymentRequests, setPaymentRequests] = useState<DashboardPaymentRequest[]>([]);
   const [notificationsLoading, setNotificationsLoading] = useState(true);
+  const [paymentsLoading, setPaymentsLoading] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState<ProfileFormState>({
     fullName: "",
@@ -46,6 +52,7 @@ const Dashboard = () => {
   const displayEmail = details?.email || profile?.email || user?.email || "No email available";
 
   const visibleNotifications = useMemo(() => notificationItems.slice(0, 5), [notificationItems]);
+  const visiblePaymentRequests = useMemo(() => paymentRequests.filter((request) => request.isActive).slice(0, 5), [paymentRequests]);
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -72,6 +79,46 @@ const Dashboard = () => {
     };
 
     void loadDashboard();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      setPaymentRequests([]);
+      setPaymentsLoading(false);
+      return;
+    }
+
+    const paymentRequestCollection = collection(db, "paymentRequests");
+    const broadcastQuery = query(paymentRequestCollection, where("audience", "==", "all"), where("isActive", "==", true));
+    const targetedQuery = query(paymentRequestCollection, where("targetUserIds", "array-contains", user.uid), where("isActive", "==", true));
+
+    const mergeRequests = (nextItems: DashboardPaymentRequest[], currentItems: DashboardPaymentRequest[]) => {
+      const map = new Map<string, DashboardPaymentRequest>();
+      [...currentItems, ...nextItems].forEach((item) => map.set(item.id, item));
+
+      return Array.from(map.values()).sort((left, right) => {
+        const leftTime = left.createdAt?.toDate?.().getTime() || 0;
+        const rightTime = right.createdAt?.toDate?.().getTime() || 0;
+        return rightTime - leftTime;
+      });
+    };
+
+    const broadcastUnsubscribe = onSnapshot(broadcastQuery, (snapshot) => {
+      const items = snapshot.docs.map((document) => ({ id: document.id, ...document.data() } as DashboardPaymentRequest));
+      setPaymentRequests((current) => mergeRequests(items, current.filter((item) => item.audience !== "all")));
+      setPaymentsLoading(false);
+    });
+
+    const targetedUnsubscribe = onSnapshot(targetedQuery, (snapshot) => {
+      const items = snapshot.docs.map((document) => ({ id: document.id, ...document.data() } as DashboardPaymentRequest));
+      setPaymentRequests((current) => mergeRequests(items, current.filter((item) => item.audience !== "selected")));
+      setPaymentsLoading(false);
+    });
+
+    return () => {
+      broadcastUnsubscribe();
+      targetedUnsubscribe();
+    };
   }, [user]);
 
   useEffect(() => {
@@ -204,6 +251,17 @@ const Dashboard = () => {
               </button>
               <button
                 type="button"
+                onClick={() => setPaymentsOpen(true)}
+                className="flex w-full items-center justify-between rounded-2xl bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/18 hover:shadow-sm"
+              >
+                <span className="inline-flex items-center gap-3"><CreditCard className="h-4 w-4 text-white" /> Payments</span>
+                <span className="inline-flex items-center gap-2">
+                  {visiblePaymentRequests.length > 0 ? <span className="rounded-full bg-white px-2 py-0.5 text-xs font-bold text-primary">{visiblePaymentRequests.length}</span> : null}
+                  <ChevronRight className="h-4 w-4 text-white/70" />
+                </span>
+              </button>
+              <button
+                type="button"
                 onClick={() => setSettingsOpen(true)}
                 className="flex w-full items-center justify-between rounded-2xl bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/18 hover:shadow-sm"
               >
@@ -240,9 +298,27 @@ const Dashboard = () => {
                   <Button type="button" variant="outline" onClick={() => setNotificationsOpen(true)} className="rounded-2xl border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white">
                     <Bell className="h-4 w-4" /> Messages
                   </Button>
+                  <Button type="button" variant="outline" onClick={() => setPaymentsOpen(true)} className="rounded-2xl border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white">
+                    <CreditCard className="h-4 w-4" /> Payments
+                  </Button>
                 </div>
               </CardContent>
             </Card>
+
+            {visiblePaymentRequests.length > 0 ? (
+              <Card className="border-amber-200 bg-amber-50 shadow-sm dark:border-amber-500/20 dark:bg-amber-500/10">
+                <CardContent className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-700 dark:text-amber-200">Payment request</p>
+                    <h2 className="mt-2 text-xl font-semibold text-amber-950 dark:text-amber-50">{visiblePaymentRequests[0].title}</h2>
+                    <p className="mt-1 text-sm text-amber-800 dark:text-amber-100">{visiblePaymentRequests[0].message || "You have a payment request from Tutor."}</p>
+                  </div>
+                  <Button type="button" onClick={() => { setSelectedPaymentRequest(visiblePaymentRequests[0]); setPaymentsOpen(true); }} className="rounded-2xl bg-amber-600 text-white hover:bg-amber-700">
+                    Pay KES {Number(visiblePaymentRequests[0].amount || 0).toLocaleString()}
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : null}
 
             <section>
               <div className="mb-4 flex items-end justify-between gap-3">
@@ -411,6 +487,58 @@ const Dashboard = () => {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={paymentsOpen} onOpenChange={setPaymentsOpen}>
+        <DialogContent className="max-h-[85vh] max-w-3xl overflow-hidden rounded-[1.75rem] border-border bg-card p-0 shadow-2xl">
+          <div className="border-b border-border px-6 py-5">
+            <DialogHeader className="space-y-2 text-left">
+              <DialogTitle className="text-2xl font-bold text-foreground">Payments</DialogTitle>
+              <DialogDescription>Payment requests sent by Tutor appear here.</DialogDescription>
+            </DialogHeader>
+          </div>
+          <div className="max-h-[68vh] space-y-3 overflow-auto px-6 py-5">
+            {paymentsLoading ? (
+              <Card className="border-border bg-muted">
+                <CardContent className="p-5 text-sm text-muted-foreground">Loading payment requests...</CardContent>
+              </Card>
+            ) : visiblePaymentRequests.length > 0 ? (
+              visiblePaymentRequests.map((request) => (
+                <div key={request.id} className="rounded-[1.5rem] border border-border bg-muted px-5 py-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">{request.purpose}</p>
+                      <h3 className="mt-2 text-lg font-semibold text-foreground">{request.title}</h3>
+                      <p className="mt-2 text-sm leading-6 text-muted-foreground">{request.message || "Payment is required to continue."}</p>
+                    </div>
+                    <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                      KES {Number(request.amount || 0).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="mt-4 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
+                    <span>Course: {request.courseName || "General"}</span>
+                    <span>Module: {request.moduleName || "Not specified"}</span>
+                    <span>Audience: {request.audience === "all" ? "All learners" : "Selected learners"}</span>
+                    <span>Due: {asDate(request.dueDate)?.toLocaleDateString() || "No due date"}</span>
+                  </div>
+                  <div className="mt-4 flex justify-end">
+                    <Button type="button" onClick={() => setSelectedPaymentRequest(request)} className="rounded-2xl">
+                      Pay now
+                    </Button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <Card className="border-dashed border-border bg-card">
+                <CardContent className="flex flex-col items-center py-14 text-center">
+                  <CreditCard className="h-12 w-12 text-muted-foreground" />
+                  <h3 className="mt-4 text-xl font-semibold text-foreground">No payment requests</h3>
+                  <p className="mt-2 max-w-xl text-sm text-muted-foreground">When Tutor sends a payment request for a module, week, or course, it will appear here.</p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={Boolean(selectedCourse)} onOpenChange={(open) => !open && setSelectedCourse(null)}>
         <DialogContent className="max-w-2xl rounded-[1.75rem] border-slate-200 bg-white p-0 shadow-2xl">
           {selectedCourse ? (
@@ -447,6 +575,18 @@ const Dashboard = () => {
           ) : null}
         </DialogContent>
       </Dialog>
+
+      <PaymentModal
+        isOpen={Boolean(selectedPaymentRequest)}
+        onClose={() => setSelectedPaymentRequest(null)}
+        courseId={selectedPaymentRequest?.courseId || selectedPaymentRequest?.id || "payment-request"}
+        courseName={selectedPaymentRequest?.title || "Tutor payment"}
+        price={Number(selectedPaymentRequest?.amount || 0)}
+        onSuccess={() => {
+          toast.success("Payment submitted. Tutor will confirm your access.");
+          setSelectedPaymentRequest(null);
+        }}
+      />
       
       <Footer />
     </div>

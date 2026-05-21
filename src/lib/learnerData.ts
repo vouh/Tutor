@@ -335,6 +335,6 @@ export async function markModuleComplete(email: string, courseId: string, module
 }
 
 export async function getCompletedModuleIds(email: string, courseId: string) {
-  const snapshot = await getDocs(query(collection(db, "learners", normalizeEmail(email), "progress", courseId, "modules"), where("completed", "==", true), orderBy("completedAt", "asc")));
+  const snapshot = await getDocs(query(collection(db, "learners", normalizeEmail(email), "progress", courseId, "modules"), where("completed", "==", true)));
   return snapshot.docs.map((document) => document.id);
 }
