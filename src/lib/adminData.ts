@@ -22,6 +22,7 @@ import { db, storage } from "@/lib/firebase";
 
 export type CourseLevel = "Beginner" | "Intermediate" | "Advanced";
 export type ModuleType = "text" | "pdf" | "video";
+export type LessonBlockType = "paragraph" | "html" | "code" | "image" | "pdf" | "video" | "quiz";
 
 export interface CourseRecord {
   id?: string;
@@ -53,6 +54,33 @@ export interface ModuleRecord {
   isFree: boolean;
   content: string;
   pdfUrl: string;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+}
+
+export interface LessonRecord {
+  id?: string;
+  title: string;
+  slug?: string;
+  order: number;
+  type: ModuleType;
+  estimatedTime?: number;
+  isPreview: boolean;
+  moduleId: string;
+  courseId: string;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+}
+
+export interface LessonBlockRecord {
+  id?: string;
+  type: LessonBlockType;
+  order: number;
+  content?: string;
+  language?: string;
+  imageUrl?: string;
+  fileUrl?: string;
+  quizId?: string;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }
@@ -147,6 +175,17 @@ export interface NotificationRecord {
   expiresAt?: Timestamp | null;
 }
 
+export interface ActivityRecord {
+  id?: string;
+  title: string;
+  description: string;
+  videoUrl?: string;
+  meetUrl?: string;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+  createdByEmail?: string;
+}
+
 export interface CourseProgressRecord {
   id?: string;
   completedModuleIds: string[];
@@ -169,6 +208,59 @@ const paymentRequestsRef = collection(db, "paymentRequests");
 const usersRef = collection(db, "users");
 const learnersRef = collection(db, "learners");
 const notificationsRef = collection(db, "notifications");
+const activitiesRef = collection(db, "activities");
+
+function nestedModulesRef(courseId: string) {
+  return collection(db, "courses", courseId, "modules");
+}
+
+function nestedModuleRef(courseId: string, moduleId: string) {
+  return doc(db, "courses", courseId, "modules", moduleId);
+}
+
+function lessonsRef(courseId: string, moduleId: string) {
+  return collection(db, "courses", courseId, "modules", moduleId, "lessons");
+}
+
+function lessonRef(courseId: string, moduleId: string, lessonId: string) {
+  return doc(db, "courses", courseId, "modules", moduleId, "lessons", lessonId);
+}
+
+function blocksRef(courseId: string, moduleId: string, lessonId: string) {
+  return collection(db, "courses", courseId, "modules", moduleId, "lessons", lessonId, "blocks");
+}
+
+function createSlug(title: string, fallbackId: string) {
+  const baseSlug = title
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return `${baseSlug || "lesson"}-${fallbackId.slice(0, 8)}`;
+}
+
+function moduleToBlocks(moduleData: Partial<ModuleRecord>): Array<Omit<LessonBlockRecord, "id" | "createdAt" | "updatedAt">> {
+  const blocks: Array<Omit<LessonBlockRecord, "id" | "createdAt" | "updatedAt">> = [];
+
+  if (moduleData.content?.trim()) {
+    blocks.push({
+      type: "html",
+      order: blocks.length + 1,
+      content: moduleData.content.trim(),
+    });
+  }
+
+  if ((moduleData.type === "pdf" || moduleData.type === "video") && moduleData.pdfUrl?.trim()) {
+    blocks.push({
+      type: moduleData.type,
+      order: blocks.length + 1,
+      fileUrl: moduleData.pdfUrl.trim(),
+    });
+  }
+
+  return blocks;
+}
 
 function createCourseSlug(title: string, courseId: string) {
   const baseSlug = title
@@ -318,6 +410,7 @@ export async function deleteCourse(courseId: string) {
   paymentsSnapshot.forEach((paymentDocument) => batch.delete(paymentDocument.ref));
 
   await batch.commit();
+  await Promise.all(modulesSnapshot.docs.map((moduleDocument) => deleteNestedModule(courseId, moduleDocument.id)));
 }
 
 export async function toggleCoursePublished(courseId: string, isPublished: boolean) {
@@ -337,12 +430,133 @@ async function syncCourseModuleCount(courseId: string) {
   });
 }
 
+async function syncNestedModuleFromLegacy(moduleData: ModuleRecord & { id: string }) {
+  const primaryLessonId = "primary";
+  const nestedRef = nestedModuleRef(moduleData.courseId, moduleData.id);
+  const nestedSnapshot = await getDoc(nestedRef);
+  const lessonSnapshot = await getDoc(lessonRef(moduleData.courseId, moduleData.id, primaryLessonId));
+  const blocksSnapshot = await getDocs(blocksRef(moduleData.courseId, moduleData.id, primaryLessonId));
+  const blocks = moduleToBlocks(moduleData);
+  const batch = writeBatch(db);
+
+  batch.set(nestedRef, {
+    title: moduleData.title,
+    description: moduleData.description || "",
+    assignment: moduleData.assignment || "",
+    type: moduleData.type,
+    isFree: Boolean(moduleData.isFree),
+    order: Number(moduleData.order || 0),
+    sourceModuleId: moduleData.id,
+    updatedAt: serverTimestamp(),
+    ...(nestedSnapshot.exists() ? {} : { createdAt: serverTimestamp() }),
+  }, { merge: true });
+
+  batch.set(lessonRef(moduleData.courseId, moduleData.id, primaryLessonId), {
+    title: moduleData.title,
+    slug: createSlug(moduleData.title, moduleData.id),
+    order: 1,
+    type: moduleData.type,
+    estimatedTime: 0,
+    isPreview: Boolean(moduleData.isFree),
+    moduleId: moduleData.id,
+    courseId: moduleData.courseId,
+    updatedAt: serverTimestamp(),
+    ...(lessonSnapshot.exists() ? {} : { createdAt: serverTimestamp() }),
+  }, { merge: true });
+
+  blocksSnapshot.forEach((blockDocument) => batch.delete(blockDocument.ref));
+  blocks.forEach((block) => {
+    const blockDocument = doc(blocksRef(moduleData.courseId, moduleData.id, primaryLessonId));
+    batch.set(blockDocument, {
+      ...block,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  });
+
+  await batch.commit();
+}
+
+async function deleteNestedModule(courseId: string, moduleId: string) {
+  const nestedLessonSnapshot = await getDocs(lessonsRef(courseId, moduleId));
+  const batch = writeBatch(db);
+
+  for (const lessonDocument of nestedLessonSnapshot.docs) {
+    const blockSnapshot = await getDocs(blocksRef(courseId, moduleId, lessonDocument.id));
+    blockSnapshot.forEach((blockDocument) => batch.delete(blockDocument.ref));
+    batch.delete(lessonDocument.ref);
+  }
+
+  batch.delete(nestedModuleRef(courseId, moduleId));
+  await batch.commit();
+}
+
 export async function getModules(courseId?: string) {
   const moduleQuery = courseId
     ? query(modulesRef, where("courseId", "==", courseId), orderBy("order", "asc"))
     : query(modulesRef, orderBy("createdAt", "desc"));
   const snapshot = await getDocs(moduleQuery);
   return snapshot.docs.map((document) => ({ id: document.id, ...document.data() } as ModuleRecord));
+}
+
+export async function getCourseModuleOutlines(courseId: string) {
+  const snapshot = await getDocs(query(nestedModulesRef(courseId), orderBy("order", "asc")));
+
+  if (snapshot.empty) {
+    return getModules(courseId);
+  }
+
+  return snapshot.docs.map((document) => {
+    const data = document.data();
+    return {
+      id: document.id,
+      title: String(data.title || "Untitled module"),
+      description: String(data.description || ""),
+      assignment: String(data.assignment || ""),
+      type: data.type === "pdf" || data.type === "video" ? data.type : "text",
+      courseId,
+      order: Number(data.order || 0),
+      isFree: Boolean(data.isFree),
+      content: "",
+      pdfUrl: "",
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt,
+    } as ModuleRecord;
+  });
+}
+
+export async function getLessonsForModule(courseId: string, moduleId: string) {
+  const snapshot = await getDocs(query(lessonsRef(courseId, moduleId), orderBy("order", "asc")));
+
+  if (!snapshot.empty) {
+    return snapshot.docs.map((document) => ({ id: document.id, ...document.data() } as LessonRecord));
+  }
+
+  const moduleData = await getModule(moduleId);
+  if (!moduleData) return [];
+
+  return [{
+    id: "primary",
+    title: moduleData.title,
+    slug: createSlug(moduleData.title, moduleId),
+    order: 1,
+    type: moduleData.type,
+    estimatedTime: 0,
+    isPreview: Boolean(moduleData.isFree),
+    moduleId,
+    courseId,
+  }];
+}
+
+export async function getLessonBlocks(courseId: string, moduleId: string, lessonId = "primary") {
+  const snapshot = await getDocs(query(blocksRef(courseId, moduleId, lessonId), orderBy("order", "asc")));
+
+  if (!snapshot.empty) {
+    return snapshot.docs.map((document) => ({ id: document.id, ...document.data() } as LessonBlockRecord));
+  }
+
+  const moduleData = await getModule(moduleId);
+  return moduleData ? moduleToBlocks(moduleData).map((block, index) => ({ id: `legacy-${index + 1}`, ...block })) : [];
 }
 
 export async function getModule(moduleId: string) {
@@ -372,6 +586,10 @@ export async function saveModule(moduleData: Partial<ModuleRecord> & { title: st
     ...payload,
     createdAt: serverTimestamp(),
   }, { merge: true });
+  await syncNestedModuleFromLegacy({
+    id: moduleId,
+    ...payload,
+  } as ModuleRecord & { id: string });
   await syncCourseModuleCount(moduleData.courseId);
   return moduleId;
 }
@@ -388,6 +606,7 @@ export async function deleteModule(moduleId: string) {
   }
   await deleteDoc(doc(db, "modules", moduleId));
   if (courseId) {
+    await deleteNestedModule(courseId, moduleId);
     await syncCourseModuleCount(courseId);
   }
 }
@@ -396,6 +615,7 @@ export async function reorderModules(courseId: string, orderedModuleIds: string[
   const batch = writeBatch(db);
   orderedModuleIds.forEach((moduleId, index) => {
     batch.update(doc(db, "modules", moduleId), { order: index + 1, updatedAt: serverTimestamp() });
+    batch.set(nestedModuleRef(courseId, moduleId), { order: index + 1, updatedAt: serverTimestamp() }, { merge: true });
   });
   await batch.commit();
 }
@@ -728,3 +948,34 @@ export async function deleteStoredFile(url: string) {
 }
 
 export const deleteStoredThumbnail = deleteStoredFile;
+
+export async function getActivities() {
+  const snapshot = await getDocs(query(activitiesRef, orderBy("createdAt", "desc")));
+  return snapshot.docs.map((document) => ({ id: document.id, ...document.data() } as ActivityRecord));
+}
+
+export async function saveActivity(activity: Partial<ActivityRecord> & { title: string; description: string; }) {
+  const activityId = activity.id || doc(activitiesRef).id;
+  const activityDocRef = doc(db, "activities", activityId);
+  const existing = activity.id ? await getDoc(activityDocRef) : null;
+
+  const payload = {
+    title: activity.title,
+    description: activity.description,
+    videoUrl: activity.videoUrl || "",
+    meetUrl: activity.meetUrl || "",
+    updatedAt: serverTimestamp(),
+    createdByEmail: activity.createdByEmail || "",
+  };
+
+  await setDoc(activityDocRef, existing?.exists() ? payload : {
+    ...payload,
+    createdAt: serverTimestamp(),
+  }, { merge: true });
+  
+  return activityId;
+}
+
+export async function deleteActivity(activityId: string) {
+  await deleteDoc(doc(activitiesRef, activityId));
+}

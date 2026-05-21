@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { BarChart3, Bell, BookOpen, CreditCard, LayoutDashboard, Menu, MoonStar, SunMedium, Users, X } from "lucide-react";
+import { BarChart3, Bell, BookOpen, Calendar, CreditCard, LayoutDashboard, Menu, MoonStar, SunMedium, Users, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { useTheme } from "next-themes";
@@ -13,6 +13,7 @@ const navItems = [
   { label: "Users", to: "/admin/users", icon: Users },
   { label: "Notifications", to: "/admin/notifications", icon: Bell },
   { label: "Payments", to: "/admin/payments", icon: CreditCard },
+  { label: "Activities", to: "/admin/activities", icon: Calendar },
 ];
 
 export function AdminLayout() {
@@ -29,6 +30,7 @@ export function AdminLayout() {
     if (location.pathname.includes("/users")) return "Users";
     if (location.pathname.includes("/modules")) return "Modules";
     if (location.pathname.includes("/courses")) return "Courses";
+    if (location.pathname.includes("/activities")) return "Activities";
     return "Dashboard";
   }, [location.pathname]);
 

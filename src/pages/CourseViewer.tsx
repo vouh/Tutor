@@ -3,7 +3,16 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowRight, BookOpen, CheckCircle2, ChevronLeft, ChevronRight, FileText, Loader2, Menu, PlayCircle, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { getCourse, getModules, type CourseRecord, type ModuleRecord } from "@/lib/adminData";
+import {
+  getCourse,
+  getCourseModuleOutlines,
+  getLessonBlocks,
+  getLessonsForModule,
+  type CourseRecord,
+  type LessonBlockRecord,
+  type LessonRecord,
+  type ModuleRecord,
+} from "@/lib/adminData";
 import { getCompletedModuleIds, getEnrollmentStatus, markModuleComplete, verifySession, type LearnerRecord } from "@/lib/learnerData";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -17,13 +26,93 @@ function RichContent({ html }: { html?: string }) {
   );
 }
 
+function LessonBlocks({ blocks }: { blocks: LessonBlockRecord[] }) {
+  if (blocks.length === 0) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center rounded-2xl border border-dashed border-border bg-muted text-muted-foreground">
+        No lesson content has been added yet.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {blocks.map((block) => {
+        const key = block.id || `${block.type}-${block.order}`;
+
+        if (block.type === "paragraph") {
+          return <p key={key} className="text-base leading-8 text-foreground">{block.content}</p>;
+        }
+
+        if (block.type === "html") {
+          return <RichContent key={key} html={block.content} />;
+        }
+
+        if (block.type === "code") {
+          return (
+            <div key={key} className="overflow-hidden rounded-2xl border border-border bg-slate-950 text-slate-100 shadow-sm">
+              <div className="border-b border-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                {block.language || "code"}
+              </div>
+              <pre className="overflow-x-auto p-4 text-sm leading-7"><code>{block.content}</code></pre>
+            </div>
+          );
+        }
+
+        if (block.type === "image" && block.imageUrl) {
+          return (
+            <figure key={key} className="overflow-hidden rounded-2xl border border-border bg-muted">
+              <img src={block.imageUrl} alt="" className="w-full object-cover" />
+            </figure>
+          );
+        }
+
+        if (block.type === "pdf" && block.fileUrl) {
+          return (
+            <div key={key} className="space-y-3">
+              <iframe title="Lesson PDF" src={block.fileUrl} className="h-[70vh] w-full rounded-2xl border border-border bg-muted" />
+              <a href={block.fileUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
+                Open PDF <ArrowRight className="h-4 w-4" />
+              </a>
+            </div>
+          );
+        }
+
+        if (block.type === "video" && block.fileUrl) {
+          return (
+            <iframe
+              key={key}
+              title="Lesson video"
+              src={block.fileUrl}
+              allowFullScreen
+              className="aspect-video w-full rounded-2xl border border-border bg-black"
+            />
+          );
+        }
+
+        if (block.type === "quiz") {
+          return (
+            <div key={key} className="rounded-2xl border border-border bg-muted p-5 text-sm text-muted-foreground">
+              Quiz content is linked to this lesson and can be enabled from the admin quiz tools.
+            </div>
+          );
+        }
+
+        return null;
+      })}
+    </div>
+  );
+}
+
 export default function CourseViewer() {
   const { id, moduleId } = useParams();
   const navigate = useNavigate();
   const [course, setCourse] = useState<CourseRecord | null>(null);
   const [modules, setModules] = useState<ModuleRecord[]>([]);
   const [learner, setLearner] = useState<LearnerRecord | null>(null);
-  const [activeModule, setActiveModule] = useState<ModuleRecord | null>(null);
+  const [activeLesson, setActiveLesson] = useState<LessonRecord | null>(null);
+  const [lessonBlocks, setLessonBlocks] = useState<LessonBlockRecord[]>([]);
+  const [lessonLoading, setLessonLoading] = useState(false);
   const [completedIds, setCompletedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -45,14 +134,12 @@ export default function CourseViewer() {
           navigate("/dashboard", { replace: true });
           return;
         }
-        const moduleData = await getModules(id);
+        const moduleData = await getCourseModuleOutlines(id);
 
         const sortedModules = [...moduleData].sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
-        const selectedModule = moduleId ? sortedModules.find((module) => module.id === moduleId) : sortedModules[0];
         setCourse(courseData);
         setModules(sortedModules);
         setLearner(learnerData);
-        setActiveModule(selectedModule || sortedModules[0] || null);
         setCompletedIds(await getCompletedModuleIds(learnerData.email, id));
       } catch {
         toast.error("Unable to load course");
@@ -62,7 +149,12 @@ export default function CourseViewer() {
     };
 
     void loadCourse();
-  }, [id, moduleId, navigate]);
+  }, [id, navigate]);
+
+  const activeModule = useMemo(
+    () => (moduleId ? modules.find((module) => module.id === moduleId) : modules[0]) || modules[0] || null,
+    [moduleId, modules]
+  );
 
   const activeIndex = useMemo(
     () => modules.findIndex((module) => module.id === activeModule?.id),
@@ -101,7 +193,44 @@ export default function CourseViewer() {
     }
   };
 
-  const contentType = activeModule?.type === "video" ? "video" : activeModule?.type === "pdf" ? "pdf" : "text";
+  useEffect(() => {
+    if (!id || !activeModule?.id) {
+      setActiveLesson(null);
+      setLessonBlocks([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadLesson = async () => {
+      setLessonLoading(true);
+      try {
+        const lessons = await getLessonsForModule(id, activeModule.id);
+        const lesson = lessons[0] || null;
+        const blocks = lesson?.id ? await getLessonBlocks(id, activeModule.id!, lesson.id) : [];
+
+        if (!cancelled) {
+          setActiveLesson(lesson);
+          setLessonBlocks(blocks);
+        }
+      } catch (err) {
+        console.error("Failed to load lesson blocks:", err);
+        if (!cancelled) {
+          setActiveLesson(null);
+          setLessonBlocks([]);
+          toast.error("Unable to load this lesson");
+        }
+      } finally {
+        if (!cancelled) setLessonLoading(false);
+      }
+    };
+
+    void loadLesson();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeModule?.id, id]);
 
   if (loading) {
     return (
@@ -180,7 +309,7 @@ export default function CourseViewer() {
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">Module {activeModule?.order || "-"}</p>
-                      <h1 className="mt-2 text-3xl font-bold tracking-tight text-foreground">{activeModule?.title || "Select a module"}</h1>
+                      <h1 className="mt-2 text-3xl font-bold tracking-tight text-foreground">{activeLesson?.title || activeModule?.title || "Select a module"}</h1>
                       {activeModule?.description ? <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{activeModule.description}</p> : null}
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
@@ -195,18 +324,12 @@ export default function CourseViewer() {
                 </div>
 
                 <div className="min-h-[62vh] px-6 py-6">
-                  {contentType === "pdf" && activeModule?.pdfUrl ? (
-                    <div className="space-y-6">
-                      <iframe title={activeModule.title} src={activeModule.pdfUrl} className="h-[70vh] w-full rounded-2xl border border-border bg-muted" />
-                      {activeModule.content ? <RichContent html={activeModule.content} /> : null}
-                    </div>
-                  ) : contentType === "video" && activeModule?.pdfUrl ? (
-                    <div className="space-y-6">
-                      <iframe title={activeModule.title} src={activeModule.pdfUrl} allowFullScreen className="aspect-video w-full rounded-2xl border border-border bg-black" />
-                      {activeModule.content ? <RichContent html={activeModule.content} /> : null}
+                  {lessonLoading ? (
+                    <div className="flex min-h-[50vh] items-center justify-center rounded-2xl border border-dashed border-border bg-muted text-muted-foreground">
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading lesson content
                     </div>
                   ) : activeModule ? (
-                    <RichContent html={activeModule.content} />
+                    <LessonBlocks blocks={lessonBlocks} />
                   ) : (
                     <div className="flex min-h-[50vh] items-center justify-center rounded-2xl border border-dashed border-border bg-muted text-muted-foreground">Select a module to begin.</div>
                   )}
@@ -267,6 +390,7 @@ export default function CourseViewer() {
             </div>
           </main>
         </div>
+      </div>
 
         <Footer />
     </div>

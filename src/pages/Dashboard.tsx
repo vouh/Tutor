@@ -1,21 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { collection, onSnapshot, query, where, orderBy } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowRight, Bell, BookOpen, ChevronRight, CreditCard, Eye, Home, LogOut, Mail, MapPin, Settings2, User } from "lucide-react";
+import { ArrowRight, Bell, BookOpen, ChevronRight, CreditCard, Eye, Home, LogOut, Mail, MapPin, Settings2, User, Calendar, Video, Tv } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PaymentModal from "@/components/PaymentModal";
 import { useAuth } from "@/contexts/AuthContext";
-import { asDate, getUserDetails, updateUserProfileRecord, type NotificationRecord, type PaymentRequestRecord, type UserCourseRecord, type UserDetailsRecord } from "@/lib/adminData";
+import { asDate, getUserDetails, updateUserProfileRecord, type NotificationRecord, type PaymentRequestRecord, type UserCourseRecord, type UserDetailsRecord, type ActivityRecord } from "@/lib/adminData";
 import { getCourseById, type Course } from "@/lib/firestore";
 import { db } from "@/lib/firebase";
 import { toast } from "sonner";
 
 type DashboardNotification = NotificationRecord & { id: string };
 type DashboardPaymentRequest = PaymentRequestRecord & { id: string };
+type DashboardActivity = ActivityRecord & { id: string };
 
 type ProfileFormState = {
   fullName: string;
@@ -24,6 +25,31 @@ type ProfileFormState = {
   location: string;
   age: string;
 };
+
+function getEmbedUrl(url: string | undefined): { type: "youtube" | "vimeo" | "other" | null; embedUrl: string | null } {
+  if (!url) return { type: null, embedUrl: null };
+  const trimmed = url.trim();
+
+  // YouTube match
+  const ytMatch = trimmed.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
+  if (ytMatch && ytMatch[1]) {
+    return {
+      type: "youtube",
+      embedUrl: `https://www.youtube.com/embed/${ytMatch[1]}`
+    };
+  }
+
+  // Vimeo match
+  const vimeoMatch = trimmed.match(/(?:vimeo\.com\/|player\.vimeo\.com\/video\/)(\d+)/i);
+  if (vimeoMatch && vimeoMatch[1]) {
+    return {
+      type: "vimeo",
+      embedUrl: `https://player.vimeo.com/video/${vimeoMatch[1]}`
+    };
+  }
+
+  return { type: "other", embedUrl: trimmed };
+}
 
 const Dashboard = () => {
   const { user, profile, logout } = useAuth();
@@ -40,6 +66,9 @@ const Dashboard = () => {
   const [notificationsLoading, setNotificationsLoading] = useState(true);
   const [paymentsLoading, setPaymentsLoading] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
+  const [activities, setActivities] = useState<DashboardActivity[]>([]);
+  const [activitiesOpen, setActivitiesOpen] = useState(false);
+  const [activitiesLoading, setActivitiesLoading] = useState(true);
   const [profileForm, setProfileForm] = useState<ProfileFormState>({
     fullName: "",
     email: "",
@@ -118,6 +147,34 @@ const Dashboard = () => {
     return () => {
       broadcastUnsubscribe();
       targetedUnsubscribe();
+    };
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      setActivities([]);
+      setActivitiesLoading(false);
+      return;
+    }
+
+    const activitiesCollection = collection(db, "activities");
+    const activitiesQuery = query(activitiesCollection, orderBy("createdAt", "desc"));
+
+    const unsubscribe = onSnapshot(
+      activitiesQuery,
+      (snapshot) => {
+        const items = snapshot.docs.map((document) => ({ id: document.id, ...document.data() } as DashboardActivity));
+        setActivities(items);
+        setActivitiesLoading(false);
+      },
+      (error) => {
+        console.error("Error fetching activities:", error);
+        setActivitiesLoading(false);
+      }
+    );
+
+    return () => {
+      unsubscribe();
     };
   }, [user]);
 
@@ -209,10 +266,10 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-background text-foreground">
       <Header />
-      
-      <main className="flex-grow px-4 py-6">
+
+      <main className="flex-1 px-4 py-6 sm:px-6">
         <div className="mx-auto grid w-full max-w-[1440px] gap-6 lg:grid-cols-[280px,minmax(0,1fr)]">
           <aside className="sticky top-24 h-fit rounded-[2rem] bg-primary p-6 text-primary-foreground shadow-lg shadow-primary/15">
             <div className="flex items-start justify-between gap-4">
@@ -227,44 +284,33 @@ const Dashboard = () => {
             </div>
 
             <div className="mt-6 space-y-2">
-              <Link
-                to="/dashboard"
-                className="flex w-full items-center justify-between rounded-2xl bg-white/12 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/18"
-              >
+              <Link to="/dashboard" className="flex w-full items-center justify-between rounded-2xl bg-white/12 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/18">
                 <span className="inline-flex items-center gap-3"><Home className="h-4 w-4 text-white" /> Dashboard</span>
                 <ChevronRight className="h-4 w-4 text-white/70" />
               </Link>
-              <Link
-                to="/courses"
-                className="flex w-full items-center justify-between rounded-2xl bg-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/18 hover:shadow-sm"
-              >
+              <Link to="/courses" className="flex w-full items-center justify-between rounded-2xl bg-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/18 hover:shadow-sm">
                 <span className="inline-flex items-center gap-3"><BookOpen className="h-4 w-4 text-white" /> Courses</span>
                 <ArrowRight className="h-4 w-4 text-white/70" />
               </Link>
-              <button
-                type="button"
-                onClick={() => setNotificationsOpen(true)}
-                className="flex w-full items-center justify-between rounded-2xl bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/18 hover:shadow-sm"
-              >
+              <button type="button" onClick={() => setNotificationsOpen(true)} className="flex w-full items-center justify-between rounded-2xl bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/18 hover:shadow-sm">
                 <span className="inline-flex items-center gap-3"><Bell className="h-4 w-4 text-white" /> Messages</span>
                 <ChevronRight className="h-4 w-4 text-white/70" />
               </button>
-              <button
-                type="button"
-                onClick={() => setPaymentsOpen(true)}
-                className="flex w-full items-center justify-between rounded-2xl bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/18 hover:shadow-sm"
-              >
+              <button type="button" onClick={() => setPaymentsOpen(true)} className="flex w-full items-center justify-between rounded-2xl bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/18 hover:shadow-sm">
                 <span className="inline-flex items-center gap-3"><CreditCard className="h-4 w-4 text-white" /> Payments</span>
                 <span className="inline-flex items-center gap-2">
                   {visiblePaymentRequests.length > 0 ? <span className="rounded-full bg-white px-2 py-0.5 text-xs font-bold text-primary">{visiblePaymentRequests.length}</span> : null}
                   <ChevronRight className="h-4 w-4 text-white/70" />
                 </span>
               </button>
-              <button
-                type="button"
-                onClick={() => setSettingsOpen(true)}
-                className="flex w-full items-center justify-between rounded-2xl bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/18 hover:shadow-sm"
-              >
+              <button type="button" onClick={() => setActivitiesOpen(true)} className="flex w-full items-center justify-between rounded-2xl bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/18 hover:shadow-sm">
+                <span className="inline-flex items-center gap-3"><Calendar className="h-4 w-4 text-white" /> Activities</span>
+                <span className="inline-flex items-center gap-2">
+                  {activities.length > 0 ? <span className="rounded-full bg-white px-2 py-0.5 text-xs font-bold text-primary">{activities.length}</span> : null}
+                  <ChevronRight className="h-4 w-4 text-white/70" />
+                </span>
+              </button>
+              <button type="button" onClick={() => setSettingsOpen(true)} className="flex w-full items-center justify-between rounded-2xl bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/18 hover:shadow-sm">
                 <span className="inline-flex items-center gap-3"><Settings2 className="h-4 w-4 text-white" /> Settings</span>
                 <ChevronRight className="h-4 w-4 text-white/70" />
               </button>
@@ -285,20 +331,23 @@ const Dashboard = () => {
           </aside>
 
           <section className="space-y-6">
-            <Card className="overflow-hidden border-primary/10 bg-primary text-primary-foreground shadow-lg shadow-primary/10">
+            <Card className="overflow-hidden border-border bg-card shadow-sm">
               <CardContent className="flex flex-col gap-5 p-6 lg:flex-row lg:items-end lg:justify-between">
                 <div>
-                  <p className="text-sm uppercase tracking-[0.28em] text-white/65">Dashboard</p>
-                  <h1 className="mt-3 text-3xl font-semibold leading-tight text-white sm:text-4xl">Welcome back, {displayName}</h1>
+                  <p className="text-sm uppercase tracking-[0.28em] text-muted-foreground">Dashboard</p>
+                  <h1 className="mt-3 text-3xl font-semibold leading-tight text-foreground sm:text-4xl">Welcome back, {displayName}</h1>
                 </div>
                 <div className="flex flex-wrap gap-3">
-                  <Button type="button" onClick={() => setSettingsOpen(true)} className="rounded-2xl bg-white text-primary hover:bg-white/90">
+                  <Button type="button" onClick={() => setSettingsOpen(true)} className="rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90">
                     <Settings2 className="h-4 w-4" /> Settings
                   </Button>
-                  <Button type="button" variant="outline" onClick={() => setNotificationsOpen(true)} className="rounded-2xl border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white">
+                  <Button type="button" variant="outline" onClick={() => setActivitiesOpen(true)} className="rounded-2xl border-border bg-background text-foreground hover:bg-muted">
+                    <Calendar className="h-4 w-4" /> Activities
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => setNotificationsOpen(true)} className="rounded-2xl border-border bg-background text-foreground hover:bg-muted">
                     <Bell className="h-4 w-4" /> Messages
                   </Button>
-                  <Button type="button" variant="outline" onClick={() => setPaymentsOpen(true)} className="rounded-2xl border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white">
+                  <Button type="button" variant="outline" onClick={() => setPaymentsOpen(true)} className="rounded-2xl border-border bg-background text-foreground hover:bg-muted">
                     <CreditCard className="h-4 w-4" /> Payments
                   </Button>
                 </div>
@@ -318,6 +367,71 @@ const Dashboard = () => {
                   </Button>
                 </CardContent>
               </Card>
+            ) : null}
+
+            {activities.length > 0 ? (
+              <section className="space-y-4">
+                <div className="flex items-end justify-between gap-3">
+                  <div>
+                    <p className="text-sm uppercase tracking-[0.24em] text-muted-foreground">Recent</p>
+                    <h2 className="text-2xl font-semibold text-foreground">Latest Activities</h2>
+                  </div>
+                  <button type="button" onClick={() => setActivitiesOpen(true)} className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline">
+                    View all ({activities.length}) <ArrowRight className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  {activities.slice(0, 2).map((act) => (
+                    <Card key={act.id} className="flex flex-col justify-between overflow-hidden border-border bg-card shadow-sm transition hover:shadow-md">
+                      <CardContent className="flex h-full flex-col justify-between gap-4 p-5">
+                        <div>
+                          <div className="flex items-start justify-between gap-3">
+                            <h3 className="line-clamp-1 text-lg font-semibold leading-snug text-foreground">{act.title}</h3>
+                            <span className="mt-0.5 shrink-0 text-xs text-muted-foreground">
+                              {act.createdAt?.toDate ? act.createdAt.toDate().toLocaleDateString() : "Just now"}
+                            </span>
+                          </div>
+                          <p className="mt-2 line-clamp-3 whitespace-pre-wrap leading-relaxed text-muted-foreground text-sm">
+                            {act.description}
+                          </p>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                          {act.videoUrl && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-red-100/60 px-2.5 py-1 text-[11px] font-semibold text-red-700 dark:bg-red-500/10 dark:text-red-300">
+                              <Tv className="h-3 w-3" /> Video Link
+                            </span>
+                          )}
+                          {act.meetUrl && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-blue-100/60 px-2.5 py-1 text-[11px] font-semibold text-blue-700 dark:bg-blue-500/10 dark:text-blue-300">
+                              <Video className="h-3 w-3" /> Google Meet Live
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="mt-1 flex items-center gap-2 border-t border-border pt-2">
+                          {act.videoUrl && (
+                            <a href={act.videoUrl} target="_blank" rel="noopener noreferrer" className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 transition hover:bg-red-100 dark:border-red-950/30 dark:bg-red-950/20 dark:text-red-400 dark:hover:bg-red-950/35">
+                              <Tv className="h-3.5 w-3.5" /> Watch Video
+                            </a>
+                          )}
+                          {act.meetUrl && (
+                            <a href={act.meetUrl} target="_blank" rel="noopener noreferrer" className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 dark:border-blue-950/30 dark:bg-blue-950/20 dark:text-blue-400 dark:hover:bg-blue-950/35">
+                              <Video className="h-3.5 w-3.5" /> Join Meet
+                            </a>
+                          )}
+                          {!act.videoUrl && !act.meetUrl && (
+                            <button type="button" onClick={() => setActivitiesOpen(true)} className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-muted">
+                              View Details
+                            </button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </section>
             ) : null}
 
             <section>
@@ -345,12 +459,7 @@ const Dashboard = () => {
                           alt={item.courseName}
                           className="h-full w-full object-cover"
                         />
-                        <button
-                          type="button"
-                          onClick={() => setSelectedCourse(item)}
-                          className="absolute right-3 top-3 inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-lg transition hover:bg-muted"
-                          aria-label={`View details for ${item.courseName}`}
-                        >
+                        <button type="button" onClick={() => setSelectedCourse(item)} className="absolute right-3 top-3 inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-lg transition hover:bg-muted" aria-label={`View details for ${item.courseName}`}>
                           <Eye className="h-4 w-4" />
                         </button>
                       </div>
@@ -362,13 +471,7 @@ const Dashboard = () => {
                         </div>
                         <div className="flex items-center justify-between rounded-2xl bg-muted px-4 py-3 text-sm">
                           <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Status</span>
-                          <span className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${
-                            item.status === "active"
-                              ? "bg-primary/10 text-primary"
-                              : item.status === "revoked"
-                                ? "bg-destructive/10 text-destructive"
-                                : "bg-secondary/10 text-secondary"
-                          }`}>
+                          <span className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${item.status === "active" ? "bg-primary/10 text-primary" : item.status === "revoked" ? "bg-destructive/10 text-destructive" : "bg-secondary/10 text-secondary"}`}>
                             {item.status || "pending"}
                           </span>
                         </div>
@@ -379,9 +482,7 @@ const Dashboard = () => {
                               Open course <ArrowRight className="h-4 w-4" />
                             </Link>
                           ) : (
-                            <span className="text-sm font-medium text-muted-foreground">
-                              {item.status === "revoked" ? "Access disabled" : "Waiting for approval"}
-                            </span>
+                            <span className="text-sm font-medium text-muted-foreground">{item.status === "revoked" ? "Access disabled" : "Waiting for approval"}</span>
                           )}
                         </div>
                       </CardContent>
@@ -540,15 +641,11 @@ const Dashboard = () => {
       </Dialog>
 
       <Dialog open={Boolean(selectedCourse)} onOpenChange={(open) => !open && setSelectedCourse(null)}>
-        <DialogContent className="max-w-2xl rounded-[1.75rem] border-slate-200 bg-white p-0 shadow-2xl">
+        <DialogContent className="max-w-2xl rounded-[1.75rem] border-border bg-card p-0 shadow-2xl">
           {selectedCourse ? (
             <>
               <div className="h-56 bg-muted">
-                <img
-                  src={selectedCourse.course?.thumbnailUrl || "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=80"}
-                  alt={selectedCourse.courseName}
-                  className="h-full w-full object-cover"
-                />
+                <img src={selectedCourse.course?.thumbnailUrl || "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=80"} alt={selectedCourse.courseName} className="h-full w-full object-cover" />
               </div>
               <div className="px-6 py-5">
                 <DialogHeader className="text-left">
@@ -566,7 +663,7 @@ const Dashboard = () => {
                       Open course
                     </Link>
                   ) : null}
-                  <Button type="button" variant="outline" onClick={() => setSelectedCourse(null)} className="rounded-2xl border-slate-200">
+                  <Button type="button" variant="outline" onClick={() => setSelectedCourse(null)} className="rounded-2xl border-border">
                     Close
                   </Button>
                 </div>
@@ -587,7 +684,49 @@ const Dashboard = () => {
           setSelectedPaymentRequest(null);
         }}
       />
-      
+
+      <Dialog open={activitiesOpen} onOpenChange={setActivitiesOpen}>
+        <DialogContent className="max-h-[85vh] max-w-4xl overflow-hidden rounded-[1.75rem] border-border bg-card p-0 shadow-2xl">
+          <div className="border-b border-border px-6 py-5">
+            <DialogHeader className="space-y-2 text-left">
+              <DialogTitle className="text-2xl font-bold text-foreground">Activities</DialogTitle>
+              <DialogDescription>Recent updates, links, and class activity.
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+          <div className="max-h-[68vh] space-y-4 overflow-auto px-6 py-5">
+            {activitiesLoading ? (
+              <Card className="border-border bg-muted"><CardContent className="p-5 text-sm text-muted-foreground">Loading activities...</CardContent></Card>
+            ) : activities.length > 0 ? (
+              activities.map((act) => (
+                <div key={act.id} className="rounded-[1.5rem] border border-border bg-muted px-5 py-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Activity</p>
+                      <h3 className="mt-2 text-lg font-semibold text-foreground">{act.title}</h3>
+                    </div>
+                    <span className="text-xs text-muted-foreground">{act.createdAt?.toDate ? act.createdAt.toDate().toLocaleString() : "Just now"}</span>
+                  </div>
+                  <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{act.description}</p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {act.videoUrl ? <a href={act.videoUrl} target="_blank" rel="noreferrer" className="rounded-full border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted">Video</a> : null}
+                    {act.meetUrl ? <a href={act.meetUrl} target="_blank" rel="noreferrer" className="rounded-full border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted">Meet</a> : null}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <Card className="border-dashed border-border bg-card">
+                <CardContent className="flex flex-col items-center py-14 text-center">
+                  <Calendar className="h-12 w-12 text-muted-foreground" />
+                  <h3 className="mt-4 text-xl font-semibold text-foreground">No activities yet</h3>
+                  <p className="mt-2 max-w-xl text-sm text-muted-foreground">Updates from the admin and course activity will appear here.</p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Footer />
     </div>
   );
