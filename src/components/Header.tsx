@@ -18,7 +18,7 @@ const Header = () => {
   const routeState = location.state as { openAuthModal?: boolean; authTab?: 'login' | 'signup'; redirectTo?: string } | null;
 
   // Check if we're on pages that need solid header background
-  const needsSolidBg = ['/courses', '/contact', '/dashboard', '/admin'].some(
+  const needsSolidBg = ['/course', '/courses', '/contact', '/dashboard', '/admin'].some(
     path => location.pathname.startsWith(path)
   );
 

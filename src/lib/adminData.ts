@@ -28,6 +28,7 @@ export interface CourseRecord {
   slug?: string;
   title: string;
   description: string;
+  summary?: string;
   instructions?: string;
   category: string;
   level: CourseLevel;
@@ -78,6 +79,7 @@ export interface UserRecord {
   displayName?: string;
   name?: string;
   phone?: string;
+  location?: string;
   age?: number;
   hasLaptop?: boolean;
   interestReason?: string;
@@ -102,7 +104,7 @@ export interface UserCourseRecord {
   courseId: string;
   courseName: string;
   enrolledAt?: Timestamp | null;
-  status?: string;
+  status?: "pending" | "active" | "revoked" | string;
 }
 
 export interface UserDetailsRecord extends UserRecord {
@@ -236,7 +238,7 @@ export async function getCourse(courseId: string) {
   return snapshot.exists() ? ({ id: snapshot.id, ...snapshot.data() } as CourseRecord) : null;
 }
 
-export async function saveCourse(course: Partial<CourseRecord> & { title: string; description: string; category: string; level: CourseLevel; price: number; isFree: boolean; isPublished: boolean; thumbnailUrl: string; moduleCount: number; instructions?: string; publishedAt?: Timestamp | Date | string | null; }) {
+export async function saveCourse(course: Partial<CourseRecord> & { title: string; description: string; category: string; level: CourseLevel; price: number; isFree: boolean; isPublished: boolean; thumbnailUrl: string; moduleCount: number; summary?: string; instructions?: string; publishedAt?: Timestamp | Date | string | null; }) {
   const courseId = course.id || doc(coursesRef).id;
   const courseRef = doc(db, "courses", courseId);
   const existing = course.id ? await getDoc(courseRef) : null;
@@ -246,6 +248,7 @@ export async function saveCourse(course: Partial<CourseRecord> & { title: string
     slug,
     title: course.title,
     description: course.description,
+    summary: course.summary || "",
     instructions: course.instructions || "",
     category: course.category,
     level: course.level,
@@ -254,6 +257,10 @@ export async function saveCourse(course: Partial<CourseRecord> & { title: string
     price: Number(course.price || 0),
     isFree: Boolean(course.isFree),
     isPublished: Boolean(course.isPublished),
+    status: course.isPublished ? "active" : "draft",
+    duration: "Self-paced",
+    students: 0,
+    rating: 4.9,
     publishedAt: course.isPublished ? asTimestamp(course.publishedAt) || serverTimestamp() : null,
     updatedAt: serverTimestamp(),
   };
@@ -292,7 +299,16 @@ export async function deleteCourse(courseId: string) {
 export async function toggleCoursePublished(courseId: string, isPublished: boolean) {
   await updateDoc(doc(db, "courses", courseId), {
     isPublished,
+    status: isPublished ? "active" : "draft",
     publishedAt: isPublished ? serverTimestamp() : null,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+async function syncCourseModuleCount(courseId: string) {
+  const snapshot = await getDocs(query(modulesRef, where("courseId", "==", courseId)));
+  await updateDoc(doc(db, "courses", courseId), {
+    moduleCount: snapshot.size,
     updatedAt: serverTimestamp(),
   });
 }
@@ -332,18 +348,24 @@ export async function saveModule(moduleData: Partial<ModuleRecord> & { title: st
     ...payload,
     createdAt: serverTimestamp(),
   }, { merge: true });
+  await syncCourseModuleCount(moduleData.courseId);
   return moduleId;
 }
 
 export async function deleteModule(moduleId: string) {
   const snapshot = await getDoc(doc(db, "modules", moduleId));
+  let courseId = "";
   if (snapshot.exists()) {
     const moduleData = snapshot.data() as ModuleRecord;
+    courseId = moduleData.courseId;
     if (moduleData.pdfUrl) {
       await deleteStoredFile(moduleData.pdfUrl);
     }
   }
   await deleteDoc(doc(db, "modules", moduleId));
+  if (courseId) {
+    await syncCourseModuleCount(courseId);
+  }
 }
 
 export async function reorderModules(courseId: string, orderedModuleIds: string[]) {
@@ -389,19 +411,17 @@ export async function getUserDetails(userId: string): Promise<UserDetailsRecord 
     const learnerSnapshot = await getDoc(doc(db, "learners", userData.email.toLowerCase()));
     learnerData = learnerSnapshot.exists() ? ({ id: learnerSnapshot.id, ...learnerSnapshot.data() } as UserRecord) : null;
   }
-  const enrollmentSnapshot = await getDocs(
-    query(collection(db, "enrollments"), where("userId", "==", userId), where("status", "==", "active"))
-  );
+  const enrollmentSnapshot = await getDocs(query(collection(db, "enrollments"), where("userId", "==", userId)));
 
   const enrolledCourses: UserCourseRecord[] = [];
   for (const enrollmentDocument of enrollmentSnapshot.docs) {
-    const enrollmentData = enrollmentDocument.data() as { courseId: string; enrolledAt?: Timestamp | null; status?: string };
+    const enrollmentData = enrollmentDocument.data() as { courseId: string; enrolledAt?: Timestamp | null; appliedAt?: Timestamp | null; status?: string };
     const courseSnapshot = await getDoc(doc(db, "courses", enrollmentData.courseId));
     enrolledCourses.push({
       courseId: enrollmentData.courseId,
       courseName: courseSnapshot.exists() ? String(courseSnapshot.data().title || enrollmentData.courseId) : enrollmentData.courseId,
-      enrolledAt: enrollmentData.enrolledAt || null,
-      status: enrollmentData.status,
+      enrolledAt: enrollmentData.enrolledAt || enrollmentData.appliedAt || null,
+      status: enrollmentData.status || "pending",
     });
   }
 
@@ -415,6 +435,48 @@ export async function getUserDetails(userId: string): Promise<UserDetailsRecord 
     enrolledCourses,
     certificatesCount: certificateSnapshot.size,
   };
+}
+
+export async function updateUserProfileRecord(userId: string, updates: Partial<Pick<UserRecord, "displayName" | "fullName" | "name" | "email" | "phone" | "location" | "age">>) {
+  const userRef = doc(db, "users", userId);
+  const snapshot = await getDoc(userRef);
+  const currentData = snapshot.exists() ? (snapshot.data() as UserRecord) : null;
+  const currentEmail = String(currentData?.email || "").trim().toLowerCase();
+  const nextEmail = String(updates.email || currentEmail).trim().toLowerCase();
+  const nextName = String(updates.displayName || updates.fullName || updates.name || currentData?.displayName || currentData?.fullName || currentData?.name || "").trim();
+  const nextPhone = String(updates.phone || currentData?.phone || "").trim();
+  const nextLocation = String(updates.location || currentData?.location || "").trim();
+
+  const payload = {
+    ...updates,
+    ...(nextName ? { displayName: nextName, fullName: nextName, name: nextName } : {}),
+    ...(nextPhone ? { phone: nextPhone } : { phone: "" }),
+    ...(nextLocation ? { location: nextLocation } : { location: "" }),
+    ...(nextEmail ? { email: nextEmail } : {}),
+    updatedAt: serverTimestamp(),
+  };
+
+  await setDoc(userRef, payload, { merge: true });
+
+  const learnerEmail = nextEmail || currentEmail;
+  if (learnerEmail) {
+    await setDoc(
+      doc(db, "learners", learnerEmail),
+      {
+        email: learnerEmail,
+        ...(nextName ? { displayName: nextName, fullName: nextName, name: nextName } : {}),
+        ...(nextPhone ? { phone: nextPhone } : { phone: "" }),
+        ...(nextLocation ? { location: nextLocation } : { location: "" }),
+        ...(typeof updates.age === "number" ? { age: updates.age } : {}),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  }
+
+  if (currentEmail && learnerEmail && currentEmail !== learnerEmail) {
+    await deleteDoc(doc(db, "learners", currentEmail)).catch(() => undefined);
+  }
 }
 
 export async function deleteUserRecord(user: UserRecord) {
@@ -457,6 +519,7 @@ export async function grantLearnerCourse(user: UserRecord, courseId: string) {
       userEmail: user.email,
       courseId,
       enrolledAt: serverTimestamp(),
+      approvedAt: serverTimestamp(),
       status: "active",
     }, { merge: true });
     await setDoc(doc(db, "users", user.id), {
@@ -494,6 +557,10 @@ export async function createNotification(notification: Omit<NotificationRecord, 
     ...notification,
     createdAt: serverTimestamp(),
   });
+}
+
+export async function deleteNotification(notificationId: string) {
+  await deleteDoc(doc(notificationsRef, notificationId));
 }
 
 export async function getPayments() {

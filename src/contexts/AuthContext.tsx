@@ -2,9 +2,11 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import {
   browserLocalPersistence,
   createUserWithEmailAndPassword,
+  GoogleAuthProvider,
   onAuthStateChanged,
   setPersistence,
   signInWithEmailAndPassword,
+  signInWithPopup,
   updateProfile,
   type User,
 } from "firebase/auth";
@@ -29,6 +31,7 @@ type AuthContextValue = {
   profile: AuthProfile | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
   signup: (data: { name: string; email: string; phone: string; password: string }) => Promise<void>;
   logout: () => Promise<void>;
 };
@@ -139,6 +142,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login: async (email: string, password: string) => {
       await setPersistence(auth, browserLocalPersistence);
       await signInWithEmailAndPassword(auth, email.trim(), password);
+    },
+    loginWithGoogle: async () => {
+      await setPersistence(auth, browserLocalPersistence);
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: "select_account" });
+      const credential = await signInWithPopup(auth, provider);
+      await ensureUserProfile(credential.user);
     },
     signup: async ({ name, email, phone, password }) => {
       await setPersistence(auth, browserLocalPersistence);

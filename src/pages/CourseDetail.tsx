@@ -1,24 +1,38 @@
-import { useEffect, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowRight, BadgeCheck, BookOpen, CheckCircle2, Clock3, Layers3, Loader2, MapPin, ShieldCheck, Sparkles, Star } from "lucide-react";
+import { ArrowRight, BadgeCheck, BookOpen, CheckCircle2, Info, Loader2, MapPin, ShieldCheck, UserRound } from "lucide-react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 import { getActiveCourses, type Course } from "@/lib/firestore";
-import { getModules, type ModuleRecord } from "@/lib/adminData";
+import { enrollCurrentLearner, enrollLearner } from "@/lib/learnerData";
 
 export default function CourseDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user, profile } = useAuth();
+  const applicationRef = useRef<HTMLElement | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
-  const [modules, setModules] = useState<ModuleRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [savingApplication, setSavingApplication] = useState(false);
+  const [applicationForm, setApplicationForm] = useState({
+    fullName: "",
+    email: "",
+    password: "",
+    age: "",
+    location: "",
+    hasLaptop: "yes",
+    interestReason: "",
+    relevantDetails: "",
+  });
 
   useEffect(() => {
     const loadCourses = async () => {
       try {
-        const data = await getActiveCourses();
-        setCourses(data);
+        setCourses(await getActiveCourses());
       } catch (error) {
         console.error("Unable to load course details", error);
       } finally {
@@ -33,41 +47,86 @@ export default function CourseDetail() {
     () => courses.find((item) => item.id === id || item.slug === id) || null,
     [courses, id]
   );
+  const isEnrolled = Boolean(course?.id && profile?.enrolledCourses?.includes(course.id));
+  const priceLabel = course?.isFree || Number(course?.price || 0) <= 0 ? "Free" : `KES ${Number(course?.price || 0).toLocaleString()}`;
+  const courseSummary = course?.summary?.trim() || course?.description || "";
+  const fallbackImage = "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1600&q=80";
 
   useEffect(() => {
-    if (!course?.id) return;
+    setApplicationForm((current) => ({
+      ...current,
+      fullName: current.fullName || profile?.displayName || user?.displayName || "",
+      email: current.email || profile?.email || user?.email || "",
+    }));
+  }, [profile?.displayName, profile?.email, user?.displayName, user?.email]);
 
-    const loadModules = async () => {
-      try {
-        const data = await getModules(course.id);
-        setModules(data);
-      } catch (error) {
-        console.error("Unable to load course modules", error);
-      }
-    };
-
-    void loadModules();
+  useEffect(() => {
+    if (window.location.hash === "#apply") {
+      applicationRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   }, [course?.id]);
-
-  const highlights = [
-    "Create your learner account before access",
-    "Actual module titles and descriptions from Firestore",
-    "Payment instructions are handled after enrollment",
-    "Your course stays linked to your email account",
-  ];
 
   const handleEnroll = () => {
     if (!course) return;
 
-    navigate(`/enroll/${course.id}`);
+    if (isEnrolled) {
+      navigate(`/courses/${course.id}`);
+      return;
+    }
+
+    applicationRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const handleApplicationSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!course?.id) return;
+
+    if (!user && applicationForm.password.length < 6) {
+      toast.error("Use a password with at least 6 characters");
+      return;
+    }
+
+    setSavingApplication(true);
+    try {
+      const payload = {
+        courseId: course.id,
+        fullName: applicationForm.fullName,
+        email: applicationForm.email,
+        age: Number(applicationForm.age),
+        location: applicationForm.location,
+        hasLaptop: applicationForm.hasLaptop === "yes",
+        interestReason: applicationForm.interestReason,
+        relevantDetails: applicationForm.relevantDetails,
+      };
+
+      if (user) {
+        await enrollCurrentLearner(payload);
+      } else {
+        await enrollLearner({ ...payload, password: applicationForm.password });
+      }
+
+      toast.success("Application submitted. Your course is pending admin approval.");
+      navigate("/dashboard", { replace: true });
+    } catch (error) {
+      const code = typeof error === "object" && error && "code" in error ? String((error as { code?: string }).code) : "";
+      const message =
+        code === "auth/email-already-in-use"
+          ? "This email already has an account. Log in first, then apply from this page."
+          : error instanceof Error
+            ? error.message
+            : "Unable to save your application right now.";
+      toast.error(message);
+    } finally {
+      setSavingApplication(false);
+    }
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 text-slate-900">
         <Header />
-        <main className="flex min-h-[70vh] items-center justify-center px-4">
-          <div className="flex flex-col items-center gap-3 rounded-[1.75rem] border border-slate-200 bg-white px-8 py-10 shadow-sm">
+        <main className="flex min-h-[70vh] items-center justify-center px-4 pt-24">
+          <div className="flex flex-col items-center gap-3 rounded-lg border border-slate-200 bg-white px-8 py-10 shadow-sm">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="text-sm text-slate-500">Loading course details...</p>
           </div>
@@ -81,15 +140,12 @@ export default function CourseDetail() {
     return (
       <div className="min-h-screen bg-slate-50 text-slate-900">
         <Header />
-        <main className="flex min-h-[70vh] items-center justify-center px-4">
-          <div className="max-w-lg rounded-[1.75rem] border border-dashed border-slate-300 bg-white p-8 text-center shadow-sm">
+        <main className="flex min-h-[70vh] items-center justify-center px-4 pt-24">
+          <div className="max-w-lg rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center shadow-sm">
             <BookOpen className="mx-auto h-12 w-12 text-slate-300" />
             <h1 className="mt-4 text-2xl font-bold text-slate-900">Course not found</h1>
             <p className="mt-2 text-sm text-slate-500">The course link may be outdated or the course is still unpublished.</p>
-            <button
-              onClick={() => navigate("/courses")}
-              className="mt-6 inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-white"
-            >
+            <button onClick={() => navigate("/courses")} className="mt-6 inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white">
               Back to courses <ArrowRight className="h-4 w-4" />
             </button>
           </div>
@@ -100,160 +156,60 @@ export default function CourseDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-[#faf8f3] text-slate-900">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
       <Header />
 
-      <main className="pt-24">
-        <section className="relative overflow-hidden border-b border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.18),_transparent_28%),radial-gradient(circle_at_top_right,_rgba(14,165,233,0.16),_transparent_24%),linear-gradient(135deg,_#0f172a_0%,_#172554_45%,_#0f766e_100%)] text-white">
-          <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(255,255,255,0.14)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.14)_1px,transparent_1px)] [background-size:48px_48px]" />
-          <div className="relative mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[1.2fr,0.8fr] lg:px-8 lg:py-20">
-            <motion.div
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="space-y-6"
-            >
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-white/80 backdrop-blur-sm">
-                <Sparkles className="h-4 w-4 text-amber-300" />
-                Course preview
-              </div>
-              <div className="space-y-3">
-                <p className="text-sm font-medium text-white/70">{course.category} · {course.level}</p>
-                <h1 className="max-w-3xl text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl">
-                  {course.title}
-                </h1>
-                <p className="max-w-2xl text-base leading-7 text-white/82 sm:text-lg">
-                  {course.description}
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3 text-sm text-white/80">
-                <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm">
-                  <Star className="h-4 w-4 text-amber-300" />
-                  {course.rating || 4.9} rating
+      <main className="pt-16">
+        <section className="relative min-h-[78vh] overflow-hidden bg-slate-950 text-white">
+          <img
+            src={course.thumbnailUrl || fallbackImage}
+            alt={course.title}
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/88 via-slate-950/58 to-slate-950/14" />
+          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-slate-50 to-transparent" />
+          <div className="relative mx-auto flex min-h-[78vh] max-w-7xl items-end px-4 pb-14 pt-24 sm:px-6 lg:px-8">
+            <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} className="max-w-3xl">
+              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-white/75">{course.category} | {course.level || "Course"}</p>
+              <h1 className="mt-4 text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl">{course.title}</h1>
+              <p className="mt-5 max-w-2xl text-base leading-7 text-white/88 sm:text-lg">{course.description}</p>
+              <div className="mt-8 flex flex-wrap items-center gap-3">
+                <button onClick={handleEnroll} className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-semibold text-slate-950 shadow-lg transition hover:bg-slate-100">
+                  {isEnrolled ? "Open Course" : "Enroll Now"} <ArrowRight className="h-4 w-4" />
+                </button>
+                <span className="inline-flex items-center gap-2 rounded-lg border border-white/25 bg-white/10 px-4 py-3 text-sm font-semibold text-white backdrop-blur">
+                  <BadgeCheck className="h-4 w-4 text-emerald-300" /> {priceLabel}
                 </span>
-                <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm">
-                  <Layers3 className="h-4 w-4" />
-                  {course.moduleCount || 1} modules
-                </span>
-                <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm">
-                  <Clock3 className="h-4 w-4" />
-                  {course.duration || "Self-paced"}
-                </span>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.08 }}
-              className="relative"
-            >
-              <div className="overflow-hidden rounded-[2rem] border border-white/15 bg-white/10 shadow-2xl backdrop-blur-xl">
-                <img
-                  src={course.thumbnailUrl || "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=80"}
-                  alt={course.title}
-                  className="h-72 w-full object-cover sm:h-80"
-                />
-                <div className="space-y-4 p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.22em] text-white/60">Enrollment</p>
-                      <p className="mt-1 text-2xl font-bold text-white">
-                        {course.isFree || Number(course.price || 0) <= 0 ? "Free" : `KES ${Number(course.price || 0).toLocaleString()}`}
-                      </p>
-                    </div>
-                    <BadgeCheck className="h-10 w-10 text-emerald-300" />
-                  </div>
-
-                  <button
-                    onClick={handleEnroll}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3.5 text-sm font-semibold text-slate-900 transition-transform hover:scale-[1.01]"
-                  >
-                    {course.isFree || Number(course.price || 0) <= 0 ? "Start Learning" : "Enroll Now"}
-                    <ArrowRight className="h-4 w-4" />
-                  </button>
-
-                  <p className="text-xs leading-5 text-white/65">
-                    Create your learner account first. Our team will follow up with payment instructions after enrollment.
-                  </p>
-                </div>
               </div>
             </motion.div>
           </div>
         </section>
 
         <section className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[1.15fr,0.85fr] lg:px-8 lg:py-16">
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="space-y-6"
-          >
-            <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-              <h2 className="text-2xl font-bold text-slate-900">What this course gives you</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-500">
-                This page keeps the public preview focused on the course overview, instructions, and enrollment entry point. The outline below comes from the real course modules saved in Firestore.
-              </p>
-
-              <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                {highlights.map((item) => (
-                  <div key={item} className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
-                    <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-600" />
-                    <p className="text-sm font-medium text-slate-700">{item}</p>
-                  </div>
-                ))}
-              </div>
+          <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="space-y-6">
+            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+              <h2 className="text-2xl font-bold text-slate-900">Course Description</h2>
+              <p className="mt-3 whitespace-pre-line text-sm leading-7 text-slate-600">{course.description}</p>
             </div>
 
-            <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+              <h2 className="text-2xl font-bold text-slate-900">What This Course Covers</h2>
+              <p className="mt-3 text-sm leading-7 text-slate-600">
+                {courseSummary || "A focused learning program built from the course materials prepared by the instructor."}
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
               <h2 className="text-2xl font-bold text-slate-900">Instructions</h2>
               <p className="mt-3 whitespace-pre-line text-sm leading-7 text-slate-600">
                 {course.instructions || "No extra instructions have been added for this course yet."}
               </p>
             </div>
-
-            <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-              <h2 className="text-2xl font-bold text-slate-900">Course content</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-500">
-                These are the actual modules linked to this course.
-              </p>
-              <div className="mt-6 space-y-4">
-                {modules.length > 0 ? modules.map((module) => (
-                  <div key={module.id || module.title} className="rounded-2xl border border-slate-200 p-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Module {module.order}</p>
-                        <h3 className="mt-1 text-lg font-semibold text-slate-900">{module.title}</h3>
-                      </div>
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase text-slate-600">
-                        {module.type}
-                      </span>
-                    </div>
-                    <p className="mt-3 text-sm leading-6 text-slate-600">{module.description}</p>
-                    {module.assignment ? (
-                      <div className="mt-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                        <span className="font-semibold">Assignment: </span>
-                        {module.assignment}
-                      </div>
-                    ) : null}
-                  </div>
-                )) : (
-                  <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-500">
-                    No modules have been added for this course yet.
-                  </div>
-                )}
-              </div>
-            </div>
           </motion.div>
 
           <aside className="space-y-6">
-            <motion.div
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm"
-            >
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Course details</p>
+            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Course details</p>
               <div className="mt-5 space-y-4 text-sm text-slate-600">
                 <div className="flex items-center justify-between gap-4">
                   <span className="inline-flex items-center gap-2 text-slate-500"><BookOpen className="h-4 w-4" />Category</span>
@@ -261,27 +217,102 @@ export default function CourseDetail() {
                 </div>
                 <div className="flex items-center justify-between gap-4">
                   <span className="inline-flex items-center gap-2 text-slate-500"><ShieldCheck className="h-4 w-4" />Level</span>
-                  <span className="font-semibold text-slate-900">{course.level}</span>
+                  <span className="font-semibold text-slate-900">{course.level || "Course"}</span>
                 </div>
                 <div className="flex items-center justify-between gap-4">
-                  <span className="inline-flex items-center gap-2 text-slate-500"><Layers3 className="h-4 w-4" />Modules</span>
-                  <span className="font-semibold text-slate-900">{course.moduleCount || 1}</span>
+                  <span className="inline-flex items-center gap-2 text-slate-500"><CheckCircle2 className="h-4 w-4" />Fee</span>
+                  <span className="font-semibold text-slate-900">{priceLabel}</span>
                 </div>
                 <div className="flex items-center justify-between gap-4">
                   <span className="inline-flex items-center gap-2 text-slate-500"><MapPin className="h-4 w-4" />Access</span>
-                  <span className="font-semibold text-slate-900">Learner account</span>
+                  <span className="font-semibold text-slate-900">After approval</span>
                 </div>
               </div>
-            </motion.div>
+              <button onClick={handleEnroll} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white">
+                {isEnrolled ? "Open Course" : "Enroll Now"} <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
 
-            <div className="rounded-[1.75rem] border border-dashed border-slate-300 bg-white p-6 shadow-sm">
-              <p className="text-sm font-semibold text-slate-900">Need help recovering access?</p>
-              <p className="mt-2 text-sm leading-6 text-slate-500">
-                Enroll with your email and password, then return to your dashboard any time.
-              </p>
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-amber-900">
+              <div className="flex items-start gap-3">
+                <Info className="mt-0.5 h-5 w-5 shrink-0" />
+                <p>After you submit the form, the course appears on your dashboard as pending. Admin approval is required before modules and assignments open.</p>
+              </div>
             </div>
           </aside>
         </section>
+
+        {!isEnrolled ? (
+          <section ref={applicationRef} id="apply" className="border-t border-slate-200 bg-white px-4 py-12 sm:px-6 lg:px-8">
+            <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.85fr,1.15fr]">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">Enrollment form</p>
+                <h2 className="mt-3 text-3xl font-bold text-slate-900">Apply for {course.title}</h2>
+                <p className="mt-3 max-w-xl text-sm leading-6 text-slate-600">
+                  Submit your learner details. Your dashboard will show this course as pending until admin approval is completed.
+                </p>
+              </div>
+
+              <form onSubmit={handleApplicationSubmit} className="rounded-lg border border-slate-200 bg-slate-50 p-5 shadow-sm sm:p-6">
+                <div className="mb-5 flex items-center gap-3">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <UserRound className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900">Learner information</h3>
+                    <p className="text-sm text-slate-500">{user ? "Signed-in application" : "New learner application"}</p>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="space-y-2 sm:col-span-2">
+                    <span className="text-sm font-medium text-slate-700">Full name</span>
+                    <input required value={applicationForm.fullName} onChange={(event) => setApplicationForm({ ...applicationForm, fullName: event.target.value })} className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 outline-none focus:border-primary" />
+                  </label>
+                  <label className="space-y-2">
+                    <span className="text-sm font-medium text-slate-700">Email address</span>
+                    <input required type="email" disabled={Boolean(user?.email)} value={applicationForm.email} onChange={(event) => setApplicationForm({ ...applicationForm, email: event.target.value })} className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 outline-none focus:border-primary disabled:bg-slate-100" />
+                  </label>
+                  {!user ? (
+                    <label className="space-y-2">
+                      <span className="text-sm font-medium text-slate-700">Access password</span>
+                      <input required type="password" minLength={6} value={applicationForm.password} onChange={(event) => setApplicationForm({ ...applicationForm, password: event.target.value })} className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 outline-none focus:border-primary" />
+                    </label>
+                  ) : null}
+                  <label className="space-y-2">
+                    <span className="text-sm font-medium text-slate-700">Age</span>
+                    <input required type="number" min={1} value={applicationForm.age} onChange={(event) => setApplicationForm({ ...applicationForm, age: event.target.value })} className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 outline-none focus:border-primary" />
+                  </label>
+                  <label className="space-y-2">
+                    <span className="text-sm font-medium text-slate-700">Location</span>
+                    <input required value={applicationForm.location} onChange={(event) => setApplicationForm({ ...applicationForm, location: event.target.value })} className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 outline-none focus:border-primary" placeholder="Town or county" />
+                  </label>
+                  <label className="space-y-2 sm:col-span-2">
+                    <span className="text-sm font-medium text-slate-700">Do you have a laptop?</span>
+                    <select value={applicationForm.hasLaptop} onChange={(event) => setApplicationForm({ ...applicationForm, hasLaptop: event.target.value })} className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 outline-none focus:border-primary">
+                      <option value="yes">Yes</option>
+                      <option value="no">No</option>
+                    </select>
+                  </label>
+                  <label className="space-y-2 sm:col-span-2">
+                    <span className="text-sm font-medium text-slate-700">Why are you choosing this course?</span>
+                    <textarea required rows={4} value={applicationForm.interestReason} onChange={(event) => setApplicationForm({ ...applicationForm, interestReason: event.target.value })} className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 outline-none focus:border-primary" />
+                  </label>
+                  <label className="space-y-2 sm:col-span-2">
+                    <span className="text-sm font-medium text-slate-700">Any relevant details</span>
+                    <textarea rows={3} value={applicationForm.relevantDetails} onChange={(event) => setApplicationForm({ ...applicationForm, relevantDetails: event.target.value })} className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 outline-none focus:border-primary" placeholder="Your availability, learning goals, or anything the instructor should know" />
+                  </label>
+                </div>
+
+                <Button disabled={savingApplication} className="mt-5 w-full gap-2 rounded-lg py-6 text-base">
+                  {savingApplication ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
+                  {savingApplication ? "Submitting application" : "Submit application"}
+                  {!savingApplication ? <ArrowRight className="h-5 w-5" /> : null}
+                </Button>
+              </form>
+            </div>
+          </section>
+        ) : null}
       </main>
 
       <Footer />

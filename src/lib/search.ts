@@ -1,4 +1,4 @@
-import { collection, getDocs, limit, query } from "firebase/firestore";
+import { collection, getDocs, limit, query, where } from "firebase/firestore";
 import { db } from "./firebase";
 
 export type SearchResultType = "page" | "course";
@@ -83,7 +83,7 @@ const getPageMatches = (queryText: string): SearchResult[] => {
 
 const getCourseMatches = async (queryText: string): Promise<SearchResult[]> => {
   const coursesRef = collection(db, "courses");
-  const coursesSnapshot = await getDocs(query(coursesRef, limit(120)));
+  const coursesSnapshot = await getDocs(query(coursesRef, where("isPublished", "==", true), limit(120)));
 
   return coursesSnapshot.docs
     .map((doc) => ({ id: doc.id, ...doc.data() }))
@@ -91,11 +91,6 @@ const getCourseMatches = async (queryText: string): Promise<SearchResult[]> => {
       const title = String(course.title ?? "");
       const description = String(course.description ?? "");
       const category = String(course.category ?? "");
-      const status = String(course.status ?? "");
-      const isPublished = Boolean(course.isPublished);
-
-      const isSearchVisible = isPublished || status === "active" || status === "published";
-      if (!isSearchVisible) return null;
 
       const snippet = description || `Category: ${category}`;
       const score = rankResult(`${title} ${category}`, snippet, queryText);
@@ -107,7 +102,7 @@ const getCourseMatches = async (queryText: string): Promise<SearchResult[]> => {
         type: "course" as const,
         title,
         snippet,
-        path: `/course/${course.id}`,
+        path: `/course/${course.slug || course.id}`,
         score,
       };
     })

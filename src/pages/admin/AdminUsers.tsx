@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { BadgeCheck, BookOpen, Search, Trash2 } from "lucide-react";
+import { BadgeCheck, BookOpen, Eye, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   addLearnerPayment,
   asDate,
@@ -27,6 +28,7 @@ export default function AdminUsers() {
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [paymentForm, setPaymentForm] = useState({ amount: "", status: "pending", note: "" });
   const [grantCourseId, setGrantCourseId] = useState("");
+  const [selectedCourse, setSelectedCourse] = useState<UserDetailsRecord["enrolledCourses"][number] | null>(null);
   const pageSize = 10;
 
   const loadUsers = async () => {
@@ -104,6 +106,17 @@ export default function AdminUsers() {
       await refreshSelected();
     } catch {
       toast.error("Failed to grant access");
+    }
+  };
+
+  const handleApproveCourse = async (courseId: string) => {
+    if (!selectedUser) return;
+    try {
+      await grantLearnerCourse(selectedUser, courseId);
+      toast.success("Course access approved");
+      await refreshSelected();
+    } catch {
+      toast.error("Failed to approve access");
     }
   };
 
@@ -212,23 +225,50 @@ export default function AdminUsers() {
                 <p className="font-semibold text-slate-900">{selectedUser.fullName || selectedUser.displayName || selectedUser.email || selectedUser.id}</p>
                 <p className="mt-1">{selectedUser.email || "-"}</p>
                 <p className="mt-1">Age: {selectedUser.age || "-"} | Laptop: {selectedUser.hasLaptop === undefined ? "-" : selectedUser.hasLaptop ? "Yes" : "No"}</p>
+                <p className="mt-1">Location: {selectedUser.location || "-"}</p>
                 <p className="mt-1">Enrolled: {asDate(selectedUser.enrolledAt || selectedUser.createdAt)?.toLocaleDateString() || "-"}</p>
                 <p className="mt-1">Session: {selectedUser.sessionToken ? "Active" : "Inactive"}</p>
                 <p className="mt-1 text-xs text-slate-500">UID: {selectedUser.uid || selectedUser.id}</p>
               </div>
 
               <div className="rounded-2xl border border-slate-200 p-4">
-                <div className="flex items-center gap-2 text-sm font-semibold text-slate-900"><BookOpen className="h-4 w-4 text-primary" /> Courses enrolled</div>
+                <div className="flex items-center gap-2 text-sm font-semibold text-slate-900"><BookOpen className="h-4 w-4 text-primary" /> Course applications</div>
                 <div className="mt-3 space-y-3">
                   {selectedUser.enrolledCourses.length > 0 ? selectedUser.enrolledCourses.map((course) => (
                     <div key={course.courseId} className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                      <p className="font-medium text-slate-900">{course.courseName}</p>
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="font-medium text-slate-900">{course.courseName}</p>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedCourse(course)}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:border-primary hover:text-primary"
+                            aria-label="View course details"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${
+                            course.status === "active"
+                              ? "bg-emerald-100 text-emerald-700"
+                              : course.status === "revoked"
+                                ? "bg-red-100 text-red-700"
+                                : "bg-amber-100 text-amber-700"
+                          }`}>
+                            {course.status || "pending"}
+                          </span>
+                        </div>
+                      </div>
                       <div className="mt-1 flex items-center justify-between gap-3">
                         <p className="text-xs text-slate-500">{course.courseId}</p>
-                        <button onClick={() => void handleRevokeCourse(course.courseId)} className="text-xs font-semibold text-red-600">Revoke</button>
+                        <div className="flex items-center gap-3">
+                          {course.status !== "active" ? (
+                            <button onClick={() => void handleApproveCourse(course.courseId)} className="text-xs font-semibold text-primary">Approve</button>
+                          ) : null}
+                          <button onClick={() => void handleRevokeCourse(course.courseId)} className="text-xs font-semibold text-red-600">Disable</button>
+                        </div>
                       </div>
                     </div>
-                  )) : <p className="text-sm text-slate-500">No active enrollments.</p>}
+                  )) : <p className="text-sm text-slate-500">No course applications.</p>}
                 </div>
                 <div className="mt-4 flex gap-2">
                   <select value={grantCourseId} onChange={(event) => setGrantCourseId(event.target.value)} className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm">
@@ -265,6 +305,25 @@ export default function AdminUsers() {
           )}
         </Card>
       </div>
+
+      <Dialog open={Boolean(selectedCourse)} onOpenChange={(open) => !open && setSelectedCourse(null)}>
+        <DialogContent className="max-w-xl rounded-[1.75rem] border-slate-200 bg-white p-0 shadow-2xl">
+          {selectedCourse ? (
+            <div className="px-6 py-5">
+              <DialogHeader className="text-left">
+                <DialogTitle className="text-2xl font-bold text-slate-900">Course details</DialogTitle>
+                <DialogDescription>Quick view for the selected learner enrollment.</DialogDescription>
+              </DialogHeader>
+              <div className="mt-5 grid gap-3 text-sm text-slate-600">
+                <div className="rounded-2xl bg-slate-50 px-4 py-3"><span className="font-semibold text-slate-900">Name: </span>{selectedCourse.courseName}</div>
+                <div className="rounded-2xl bg-slate-50 px-4 py-3"><span className="font-semibold text-slate-900">Status: </span>{selectedCourse.status || "pending"}</div>
+                <div className="rounded-2xl bg-slate-50 px-4 py-3"><span className="font-semibold text-slate-900">Course ID: </span>{selectedCourse.courseId}</div>
+                <div className="rounded-2xl bg-slate-50 px-4 py-3"><span className="font-semibold text-slate-900">Enrolled: </span>{asDate(selectedCourse.enrolledAt)?.toLocaleDateString() || "-"}</div>
+              </div>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

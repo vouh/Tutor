@@ -3,7 +3,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, GripVertical, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import ReactQuill from "react-quill";
-import "react-quill/dist/quill.snow.css";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { deleteModule, getCourse, getModules, reorderModules, saveModule, uploadModulePdf, type CourseRecord, type ModuleRecord, type ModuleType } from "@/lib/adminData";
@@ -28,6 +27,34 @@ const emptyForm: ModuleFormState = {
   content: "",
   pdfUrl: "",
 };
+
+const quillModules = {
+  toolbar: [
+    [{ header: [1, 2, 3, false] }],
+    ["bold", "italic", "underline", "strike"],
+    [{ color: [] }, { background: [] }],
+    [{ list: "ordered" }, { list: "bullet" }],
+    [{ align: [] }],
+    ["blockquote", "code-block"],
+    ["link", "clean"],
+  ],
+};
+
+const quillFormats = [
+  "header",
+  "bold",
+  "italic",
+  "underline",
+  "strike",
+  "color",
+  "background",
+  "list",
+  "bullet",
+  "align",
+  "blockquote",
+  "code-block",
+  "link",
+];
 
 function toForm(module?: ModuleRecord, fallbackOrder = 1): ModuleFormState {
   return module
@@ -274,9 +301,15 @@ export default function AdminCourseModules() {
             </label>
             {form.type === "text" ? (
               <label className="space-y-1 md:col-span-2">
-                <span className="text-sm font-medium text-foreground">HTML content</span>
-                <div className="w-full rounded-lg border border-border bg-background p-0 text-sm">
-                  <ReactQuill value={form.content} onChange={(value) => setForm({ ...form, content: value })} theme="snow" />
+                <span className="text-sm font-medium text-foreground">Lesson content</span>
+                <div className="admin-quill w-full text-sm">
+                  <ReactQuill
+                    value={form.content}
+                    onChange={(value) => setForm({ ...form, content: value })}
+                    modules={quillModules}
+                    formats={quillFormats}
+                    theme="snow"
+                  />
                 </div>
               </label>
             ) : form.type === "pdf" ? (
@@ -287,7 +320,15 @@ export default function AdminCourseModules() {
                 </label>
                 <label className="space-y-1">
                   <span className="text-sm font-medium text-foreground">Notes</span>
-                  <textarea value={form.content} onChange={(event) => setForm({ ...form, content: event.target.value })} rows={3} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+                  <div className="admin-quill w-full text-sm">
+                    <ReactQuill
+                      value={form.content}
+                      onChange={(value) => setForm({ ...form, content: value })}
+                      modules={quillModules}
+                      formats={quillFormats}
+                      theme="snow"
+                    />
+                  </div>
                 </label>
               </div>
             ) : (
@@ -298,7 +339,15 @@ export default function AdminCourseModules() {
                 </label>
                 <label className="space-y-1">
                   <span className="text-sm font-medium text-foreground">Notes</span>
-                  <textarea value={form.content} onChange={(event) => setForm({ ...form, content: event.target.value })} rows={3} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+                  <div className="admin-quill w-full text-sm">
+                    <ReactQuill
+                      value={form.content}
+                      onChange={(value) => setForm({ ...form, content: value })}
+                      modules={quillModules}
+                      formats={quillFormats}
+                      theme="snow"
+                    />
+                  </div>
                 </label>
               </div>
             )}

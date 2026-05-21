@@ -21,8 +21,10 @@ export interface Course {
   slug?: string;
   title: string;
   description: string;
+  summary?: string;
   instructions?: string;
   category: string;
+  level?: string;
   price: number;
   moduleCount?: number;
   duration: string;
@@ -69,23 +71,29 @@ const transactionsRef = collection(db, 'transactions');
 
 // ============ COURSES ============
 
+const toMillis = (value: Course['createdAt'] | undefined): number => {
+  if (!value) return 0;
+  if (typeof value.toMillis === 'function') return value.toMillis();
+  return 0;
+};
+
+const sortNewestFirst = (courses: Course[]) => {
+  return [...courses].sort((a, b) => toMillis(b.createdAt) - toMillis(a.createdAt));
+};
+
 export const getAllCourses = async (): Promise<Course[]> => {
   const snapshot = await getDocs(query(coursesRef, orderBy('createdAt', 'desc')));
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Course));
 };
 
 export const getActiveCourses = async (): Promise<Course[]> => {
-  const snapshot = await getDocs(query(coursesRef, orderBy('createdAt', 'desc')));
-  return snapshot.docs
-    .map(doc => ({ id: doc.id, ...doc.data() } as Course))
-    .filter((course) => course.isPublished === true || course.status === 'active');
+  const snapshot = await getDocs(query(coursesRef, where('isPublished', '==', true)));
+  return sortNewestFirst(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Course)));
 };
 
 export const getCoursesByCategory = async (category: string): Promise<Course[]> => {
-  const snapshot = await getDocs(query(coursesRef, where('category', '==', category), orderBy('createdAt', 'desc')));
-  return snapshot.docs
-    .map(doc => ({ id: doc.id, ...doc.data() } as Course))
-    .filter((course) => course.isPublished === true || course.status === 'active');
+  const snapshot = await getDocs(query(coursesRef, where('category', '==', category), where('isPublished', '==', true)));
+  return sortNewestFirst(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Course)));
 };
 
 export const getCourseById = async (id: string): Promise<Course | null> => {

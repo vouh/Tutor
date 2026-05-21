@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { CheckCircle2, CircleOff, Edit3, Loader2, Plus, Search, Trash2, Upload } from "lucide-react";
+import { BookOpen, CheckCircle2, CircleOff, Edit3, Eye, Loader2, Plus, Search, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Timestamp } from "firebase/firestore";
 import { Card } from "@/components/ui/card";
@@ -13,6 +13,7 @@ type CourseFormState = {
   id?: string;
   title: string;
   description: string;
+  summary: string;
   instructions: string;
   category: string;
   level: CourseLevel;
@@ -26,6 +27,7 @@ type CourseFormState = {
 const emptyForm: CourseFormState = {
   title: "",
   description: "",
+  summary: "",
   instructions: "",
   category: "",
   level: "Beginner",
@@ -42,6 +44,7 @@ function toForm(course?: CourseRecord): CourseFormState {
         id: course.id,
         title: course.title,
         description: course.description,
+        summary: course.summary || "",
         instructions: course.instructions || "",
         category: course.category,
         level: course.level,
@@ -91,6 +94,17 @@ export default function AdminCourses() {
       [course.title, course.description, course.category, course.level].join(" ").toLowerCase().includes(search)
     );
   }, [courses, query]);
+
+  const summary = useMemo(() => {
+    const published = courses.filter((course) => course.isPublished).length;
+    const modules = courses.reduce((sum, course) => sum + Number(course.moduleCount || 0), 0);
+    return [
+      { label: "Total courses", value: courses.length, icon: BookOpen },
+      { label: "Published", value: published, icon: CheckCircle2 },
+      { label: "Drafts", value: courses.length - published, icon: CircleOff },
+      { label: "Modules", value: modules, icon: Eye },
+    ];
+  }, [courses]);
 
   const totalPages = Math.max(1, Math.ceil(filteredCourses.length / pageSize));
   const paginatedCourses = filteredCourses.slice((page - 1) * pageSize, page * pageSize);
@@ -166,6 +180,7 @@ export default function AdminCourses() {
         id: courseId,
         title: form.title,
         description: form.description,
+        summary: form.summary,
         instructions: form.instructions,
         category: form.category,
         level: form.level,
@@ -232,27 +247,46 @@ export default function AdminCourses() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm lg:flex-row lg:items-center lg:justify-between">
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {summary.map((item) => {
+          const Icon = item.icon;
+          return (
+            <Card key={item.label} className="rounded-lg border-border bg-card p-4 shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{item.label}</p>
+                  <p className="mt-2 text-2xl font-bold text-foreground">{item.value.toLocaleString()}</p>
+                </div>
+                <span className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <Icon className="h-5 w-5" />
+                </span>
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+
+      <div className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Course management</h2>
-          <p className="mt-1 text-sm text-slate-500">Create, edit, publish, and delete courses.</p>
+          <h2 className="text-2xl font-bold text-foreground">Course management</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Create, edit, publish, and organize course modules.</p>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative w-full sm:w-72">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="Search courses" className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="Search courses" className="w-full rounded-md border border-border bg-background py-2.5 pl-10 pr-4 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10" />
           </div>
-          <button onClick={startCreate} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-primary to-accent px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-primary/15">
+          <button onClick={startCreate} className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90">
             <Plus className="h-4 w-4" /> New course
           </button>
         </div>
       </div>
 
-      <Card className="overflow-hidden rounded-[1.5rem] border-slate-200 bg-white shadow-sm">
+      <Card className="overflow-hidden rounded-lg border-border bg-card shadow-sm">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-200">
-            <thead className="bg-slate-50 text-left text-xs uppercase tracking-[0.2em] text-slate-500">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-muted/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="px-5 py-4">Course</th>
                 <th className="px-5 py-4">Level</th>
@@ -261,42 +295,43 @@ export default function AdminCourses() {
                 <th className="px-5 py-4">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border">
               {loading ? (
                 <tr><td className="px-5 py-8 text-sm text-slate-500" colSpan={5}>Loading courses...</td></tr>
               ) : paginatedCourses.length === 0 ? (
                 <tr><td className="px-5 py-8 text-sm text-slate-500" colSpan={5}>No courses found.</td></tr>
               ) : paginatedCourses.map((course) => (
-                <tr key={course.id} className="hover:bg-slate-50/70">
+                <tr key={course.id} className="hover:bg-muted/40">
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3">
-                      <img src={course.thumbnailUrl || "https://placehold.co/120x90"} alt={course.title} className="h-14 w-20 rounded-xl object-cover" />
+                        <img src={course.thumbnailUrl || "https://placehold.co/120x90"} alt={course.title} className="h-14 w-20 rounded-md object-cover" />
                       <div>
-                        <p className="font-semibold text-slate-900">{course.title}</p>
+                          <p className="font-semibold text-foreground">{course.title}</p>
                         <p className="max-w-md truncate text-sm text-slate-500">{course.category} · {course.description}</p>
-                      </div>
+                          <p className="mt-1 text-xs text-muted-foreground">{Number(course.moduleCount || 0)} modules</p>
+                        </div>
                     </div>
                   </td>
-                  <td className="px-5 py-4 text-sm text-slate-700">{course.level}</td>
-                  <td className="px-5 py-4 text-sm text-slate-700">KES {Number(course.price || 0).toLocaleString()}</td>
+                  <td className="px-5 py-4 text-sm text-foreground">{course.level}</td>
+                  <td className="px-5 py-4 text-sm text-foreground">{course.isFree ? "Free" : `KES ${Number(course.price || 0).toLocaleString()}`}</td>
                   <td className="px-5 py-4">
-                    <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${course.isPublished ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-600"}`}>
+                    <span className={`inline-flex rounded-md px-2.5 py-1 text-xs font-semibold ${course.isPublished ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" : "bg-muted text-muted-foreground"}`}>
                       {course.isPublished ? "Published" : "Draft"}
                     </span>
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex flex-wrap gap-2">
-                      <button onClick={() => startEdit(course)} className="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700">
+                      <button onClick={() => startEdit(course)} className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-muted">
                         <Edit3 className="h-4 w-4" /> Edit
                       </button>
-                      <button onClick={() => void handleTogglePublish(course)} disabled={publishBusyId === course.id} className="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 disabled:opacity-60">
+                      <button onClick={() => void handleTogglePublish(course)} disabled={publishBusyId === course.id} className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-60">
                         {publishBusyId === course.id ? <Loader2 className="h-4 w-4 animate-spin" /> : course.isPublished ? <CircleOff className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
                         {course.isPublished ? "Unpublish" : "Publish"}
                       </button>
-                      <button onClick={() => setDeleteTarget(course)} className="inline-flex items-center gap-1 rounded-xl border border-red-200 px-3 py-2 text-sm font-medium text-red-600">
+                      <button onClick={() => setDeleteTarget(course)} className="inline-flex items-center gap-1 rounded-md border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50">
                         <Trash2 className="h-4 w-4" /> Delete
                       </button>
-                      <Link to={`/admin/courses/${course.id}/modules`} className="inline-flex items-center gap-1 rounded-xl border border-primary/20 px-3 py-2 text-sm font-medium text-primary">
+                      <Link to={`/admin/courses/${course.id}/modules`} className="inline-flex items-center gap-1 rounded-md border border-primary/20 px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10">
                         Modules
                       </Link>
                     </div>
@@ -307,11 +342,11 @@ export default function AdminCourses() {
           </table>
         </div>
 
-        <div className="flex items-center justify-between border-t border-slate-100 px-5 py-4 text-sm text-slate-600">
+        <div className="flex items-center justify-between border-t border-border px-5 py-4 text-sm text-muted-foreground">
           <span>Page {page} of {totalPages}</span>
           <div className="flex gap-2">
-            <button disabled={page === 1} onClick={() => setPage((value) => Math.max(1, value - 1))} className="rounded-xl border border-slate-200 px-3 py-2 disabled:opacity-50">Previous</button>
-            <button disabled={page === totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))} className="rounded-xl border border-slate-200 px-3 py-2 disabled:opacity-50">Next</button>
+            <button disabled={page === 1} onClick={() => setPage((value) => Math.max(1, value - 1))} className="rounded-md border border-border px-3 py-2 disabled:opacity-50">Previous</button>
+            <button disabled={page === totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))} className="rounded-md border border-border px-3 py-2 disabled:opacity-50">Next</button>
           </div>
         </div>
       </Card>
@@ -381,6 +416,10 @@ export default function AdminCourses() {
             <div className="md:col-span-2">
               <label className="mb-2 block text-sm font-medium text-slate-700">Description</label>
               <textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} rows={5} className="w-full rounded-2xl border border-slate-200 px-4 py-3" />
+            </div>
+            <div className="md:col-span-2">
+              <label className="mb-2 block text-sm font-medium text-slate-700">Course summary</label>
+              <textarea value={form.summary} onChange={(event) => setForm({ ...form, summary: event.target.value })} rows={4} className="w-full rounded-2xl border border-slate-200 px-4 py-3" placeholder="Short summary of what the course will cover" />
             </div>
             <div className="md:col-span-2">
               <label className="mb-2 block text-sm font-medium text-slate-700">Instructions</label>

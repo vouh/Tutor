@@ -55,6 +55,8 @@ export type EnrollmentInput = {
   age: number;
   hasLaptop: boolean;
   interestReason: string;
+  location?: string;
+  relevantDetails?: string;
 };
 
 export function normalizeEmail(email: string) {
@@ -71,20 +73,28 @@ function getLearnerRef(email: string) {
 
 async function persistLearnerSession(email: string, token: string) {
   localStorage.setItem("learner_session", JSON.stringify({ email: normalizeEmail(email), token }));
-  await updateDoc(getLearnerRef(email), {
+  await setDoc(getLearnerRef(email), {
     sessionToken: token,
     lastLoginAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
-  });
+  }, { merge: true });
 }
 
-async function writeEnrollment(user: User, courseId: string, email: string) {
-  await setDoc(doc(db, "enrollments", `${user.uid}_${courseId}`), {
+async function writeEnrollment(user: User, input: Omit<EnrollmentInput, "password">) {
+  const email = normalizeEmail(user.email || input.email);
+  await setDoc(doc(db, "enrollments", `${user.uid}_${input.courseId}`), {
     userId: user.uid,
     userEmail: normalizeEmail(email),
-    courseId,
+    courseId: input.courseId,
+    fullName: input.fullName.trim(),
+    age: Number(input.age || 0),
+    hasLaptop: Boolean(input.hasLaptop),
+    location: input.location?.trim() || "",
+    interestReason: input.interestReason.trim(),
+    relevantDetails: input.relevantDetails?.trim() || "",
+    appliedAt: serverTimestamp(),
     enrolledAt: serverTimestamp(),
-    status: "active",
+    status: "pending",
   }, { merge: true });
 }
 
@@ -107,8 +117,10 @@ export async function enrollLearner(input: EnrollmentInput) {
     email,
     age: Number(input.age),
     hasLaptop: Boolean(input.hasLaptop),
+    location: input.location?.trim() || "",
     interestReason: input.interestReason.trim(),
-    enrolledCourses: [input.courseId],
+    relevantDetails: input.relevantDetails?.trim() || "",
+    enrolledCourses: [],
     enrolledAt: serverTimestamp(),
     paymentsLog: [],
     sessionToken: token,
@@ -124,18 +136,60 @@ export async function enrollLearner(input: EnrollmentInput) {
       displayName: input.fullName.trim(),
       name: input.fullName.trim(),
       role: "student",
-      enrolledCourses: [input.courseId],
+      enrolledCourses: [],
       totalSpent: 0,
       notificationsEnabled: true,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       lastLoginAt: serverTimestamp(),
     }, { merge: true }),
-    writeEnrollment(credential.user, input.courseId, email),
+    writeEnrollment(credential.user, input),
   ]);
 
   localStorage.setItem("learner_session", JSON.stringify({ email, token }));
   return { user: credential.user, learner: learnerPayload };
+}
+
+export async function enrollCurrentLearner(input: Omit<EnrollmentInput, "password">) {
+  const currentUser = auth.currentUser;
+  if (!currentUser?.email) {
+    throw new Error("Please log in before applying for this course.");
+  }
+
+  const email = normalizeEmail(currentUser.email);
+  const fullName = input.fullName.trim() || currentUser.displayName || email.split("@")[0];
+  const token = createSessionToken();
+  const learnerPayload = {
+    uid: currentUser.uid,
+    fullName,
+    displayName: fullName,
+    email,
+    age: Number(input.age || 0),
+    hasLaptop: Boolean(input.hasLaptop),
+    location: input.location?.trim() || "",
+    interestReason: input.interestReason.trim(),
+    relevantDetails: input.relevantDetails?.trim() || "",
+    sessionToken: token,
+    updatedAt: serverTimestamp(),
+    lastLoginAt: serverTimestamp(),
+  };
+
+  await Promise.all([
+    setDoc(getLearnerRef(email), learnerPayload, { merge: true }),
+    setDoc(doc(db, "users", currentUser.uid), {
+      uid: currentUser.uid,
+      email,
+      displayName: fullName,
+      name: fullName,
+      role: "student",
+      notificationsEnabled: true,
+      updatedAt: serverTimestamp(),
+      lastLoginAt: serverTimestamp(),
+    }, { merge: true }),
+    writeEnrollment(currentUser, input),
+  ]);
+
+  localStorage.setItem("learner_session", JSON.stringify({ email, token }));
 }
 
 export async function loginLearner(emailInput: string, password: string) {
@@ -146,15 +200,17 @@ export async function loginLearner(emailInput: string, password: string) {
 
   const learnerSnapshot = await getDoc(getLearnerRef(email));
   if (!learnerSnapshot.exists()) {
+    const userSnapshot = await getDoc(doc(db, "users", credential.user.uid));
+    const userData = userSnapshot.exists() ? userSnapshot.data() as { enrolledCourses?: string[]; displayName?: string; name?: string } : {};
     await setDoc(getLearnerRef(email), {
       uid: credential.user.uid,
-      fullName: credential.user.displayName || email.split("@")[0],
-      displayName: credential.user.displayName || email.split("@")[0],
+      fullName: userData.displayName || userData.name || credential.user.displayName || email.split("@")[0],
+      displayName: userData.displayName || userData.name || credential.user.displayName || email.split("@")[0],
       email,
       age: 0,
       hasLaptop: false,
       interestReason: "",
-      enrolledCourses: [],
+      enrolledCourses: Array.isArray(userData.enrolledCourses) ? userData.enrolledCourses : [],
       paymentsLog: [],
       sessionToken: token,
       createdAt: serverTimestamp(),
@@ -169,17 +225,53 @@ export async function loginLearner(emailInput: string, password: string) {
 }
 
 export async function verifySession() {
-  const stored = localStorage.getItem("learner_session");
-  if (!stored || !auth.currentUser?.email) return null;
+  if (!auth.currentUser?.email) return null;
 
   try {
-    const session = JSON.parse(stored) as { email?: string; token?: string };
-    const email = normalizeEmail(session.email || auth.currentUser.email || "");
-    if (!email || !session.token || normalizeEmail(auth.currentUser.email || "") !== email) return null;
+    const stored = localStorage.getItem("learner_session");
+    const session = stored ? JSON.parse(stored) as { email?: string; token?: string } : {};
+    const email = normalizeEmail(auth.currentUser.email || "");
+    if (!email || (session.email && normalizeEmail(session.email) !== email)) return null;
     const snapshot = await getDoc(getLearnerRef(email));
-    if (!snapshot.exists()) return null;
+    if (!snapshot.exists()) {
+      const userSnapshot = await getDoc(doc(db, "users", auth.currentUser.uid));
+      const userData = userSnapshot.exists() ? userSnapshot.data() as { enrolledCourses?: string[]; displayName?: string; name?: string } : {};
+      const token = createSessionToken();
+      await setDoc(getLearnerRef(email), {
+        uid: auth.currentUser.uid,
+        fullName: userData.displayName || userData.name || auth.currentUser.displayName || email.split("@")[0],
+        displayName: userData.displayName || userData.name || auth.currentUser.displayName || email.split("@")[0],
+        email,
+        age: 0,
+        hasLaptop: false,
+        interestReason: "",
+        enrolledCourses: Array.isArray(userData.enrolledCourses) ? userData.enrolledCourses : [],
+        paymentsLog: [],
+        sessionToken: token,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      localStorage.setItem("learner_session", JSON.stringify({ email, token }));
+      return {
+        uid: auth.currentUser.uid,
+        fullName: userData.displayName || userData.name || auth.currentUser.displayName || email.split("@")[0],
+        displayName: userData.displayName || userData.name || auth.currentUser.displayName || email.split("@")[0],
+        email,
+        age: 0,
+        hasLaptop: false,
+        interestReason: "",
+        enrolledCourses: Array.isArray(userData.enrolledCourses) ? userData.enrolledCourses : [],
+        paymentsLog: [],
+        sessionToken: token,
+      } as LearnerRecord;
+    }
     const learner = { id: snapshot.id, ...snapshot.data() } as LearnerRecord;
-    return learner.sessionToken === session.token ? learner : null;
+    if (!session.token || learner.sessionToken !== session.token) {
+      const token = createSessionToken();
+      await persistLearnerSession(email, token);
+      return { ...learner, sessionToken: token };
+    }
+    return learner;
   } catch {
     return null;
   }
@@ -219,6 +311,12 @@ export async function getCourseModules(courseId: string): Promise<ModuleRecord[]
 }
 
 export const getModules = getCourseModules;
+
+export async function getEnrollmentStatus(userId: string, courseId: string) {
+  const snapshot = await getDoc(doc(db, "enrollments", `${userId}_${courseId}`));
+  if (!snapshot.exists()) return null;
+  return String(snapshot.data().status || "");
+}
 
 export async function markModuleComplete(email: string, courseId: string, moduleId: string) {
   await setDoc(doc(db, "learners", normalizeEmail(email), "progress", courseId, "modules", moduleId), {
