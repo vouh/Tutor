@@ -84,7 +84,7 @@ const Dashboard = () => {
 
   const visibleNotifications = useMemo(() => notificationItems.slice(0, 5), [notificationItems]);
   const visiblePaymentRequests = useMemo(() => paymentRequests.filter((request) => request.isActive).slice(0, 5), [paymentRequests]);
-  const completedPayments = useMemo(() => paymentHistory.filter((payment) => payment.status === "completed" || payment.status === "confirmed"), [paymentHistory]);
+  const completedPayments = useMemo(() => paymentHistory.filter((payment) => ["completed", "confirmed"].includes(payment.status as PaymentRecord["status"])), [paymentHistory]);
 
   const getPaymentSummary = (request: DashboardPaymentRequest) => {
     const matchedPayments = completedPayments.filter((payment) => {
@@ -344,7 +344,7 @@ const Dashboard = () => {
                 <ArrowRight className="h-4 w-4 text-white/70" />
               </Link>
               <button type="button" onClick={() => setNotificationsOpen(true)} className="group flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition duration-200 hover:-translate-y-0.5 hover:bg-white/20 hover:shadow-md">
-                <span className="inline-flex items-center gap-3"><Bell className="h-4 w-4 text-white/90 transition group-hover:scale-110" /> Messages</span>
+                <span className="inline-flex items-center gap-3"><Bell className="h-4 w-4 text-white/90 transition group-hover:scale-110" /> Notifications</span>
                 <ChevronRight className="h-4 w-4 text-white/70 transition group-hover:translate-x-0.5" />
               </button>
               <button type="button" onClick={() => setPaymentsOpen(true)} className="group flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition duration-200 hover:-translate-y-0.5 hover:bg-white/20 hover:shadow-md">
@@ -373,23 +373,23 @@ const Dashboard = () => {
           </aside>
 
           <section className="space-y-6">
-            <Card className="overflow-hidden border border-primary/15 bg-gradient-to-br from-primary/10 via-background to-background shadow-sm">
+            <Card className="overflow-hidden border border-primary/15 bg-primary shadow-sm">
               <CardContent className="flex flex-col gap-5 p-6 lg:flex-row lg:items-end lg:justify-between">
                 <div>
-                  <p className="text-sm uppercase tracking-[0.28em] text-primary">Dashboard</p>
-                  <h1 className="mt-3 text-3xl font-semibold leading-tight text-foreground sm:text-4xl">Welcome back, {displayName}</h1>
+                  <p className="text-sm uppercase tracking-[0.28em] text-primary-foreground/80">Dashboard</p>
+                  <h1 className="mt-3 text-3xl font-semibold leading-tight text-primary-foreground sm:text-4xl">Welcome back, {displayName}</h1>
                 </div>
                 <div className="flex flex-wrap gap-3">
-                  <Button type="button" onClick={() => setSettingsOpen(true)} className="rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90">
+                  <Button type="button" onClick={() => setSettingsOpen(true)} className="rounded-2xl border border-white/20 bg-white text-primary hover:bg-white/90">
                     <Settings2 className="h-4 w-4" /> Settings
                   </Button>
-                  <Button type="button" variant="outline" onClick={() => setActivitiesOpen(true)} className="rounded-2xl border-primary/20 bg-background text-foreground transition hover:border-primary/30 hover:bg-primary/5 hover:text-primary">
+                  <Button type="button" variant="outline" onClick={() => setActivitiesOpen(true)} className="rounded-2xl border-white/20 bg-white/10 text-white transition hover:bg-white/20 hover:text-white">
                     <Calendar className="h-4 w-4" /> Activities
                   </Button>
-                  <Button type="button" variant="outline" onClick={() => setNotificationsOpen(true)} className="rounded-2xl border-primary/20 bg-background text-foreground transition hover:border-primary/30 hover:bg-primary/5 hover:text-primary">
-                    <Bell className="h-4 w-4" /> Messages
+                  <Button type="button" variant="outline" onClick={() => setNotificationsOpen(true)} className="rounded-2xl border-white/20 bg-white/10 text-white transition hover:bg-white/20 hover:text-white">
+                    <Bell className="h-4 w-4" /> Notifications
                   </Button>
-                  <Button type="button" variant="outline" onClick={() => setPaymentsOpen(true)} className="rounded-2xl border-primary/20 bg-background text-foreground transition hover:border-primary/30 hover:bg-primary/5 hover:text-primary">
+                  <Button type="button" variant="outline" onClick={() => setPaymentsOpen(true)} className="rounded-2xl border-white/20 bg-white/10 text-white transition hover:bg-white/20 hover:text-white">
                     <CreditCard className="h-4 w-4" /> Payments
                   </Button>
                 </div>
@@ -590,7 +590,7 @@ const Dashboard = () => {
           <div className="border-b border-border px-6 py-5">
             <DialogHeader className="space-y-2 text-left">
               <DialogTitle className="text-2xl font-bold text-foreground">Notifications</DialogTitle>
-              <DialogDescription>Announcements and alerts are shown here as compact messages instead of a separate page.</DialogDescription>
+              <DialogDescription>Announcements and alerts are shown here as compact notifications instead of a separate page.</DialogDescription>
             </DialogHeader>
           </div>
           <div className="max-h-[68vh] space-y-3 overflow-auto px-6 py-5">
@@ -603,7 +603,7 @@ const Dashboard = () => {
                 <div key={notification.id} className="rounded-[1.5rem] border border-border bg-muted px-5 py-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Message</p>
+                      <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Notification</p>
                       <h3 className="mt-2 text-lg font-semibold text-foreground">{notification.title}</h3>
                     </div>
                     <span className={`rounded-full px-3 py-1 text-xs font-semibold ${notification.audience === "all" ? "bg-primary/10 text-primary" : "bg-secondary/10 text-secondary"}`}>

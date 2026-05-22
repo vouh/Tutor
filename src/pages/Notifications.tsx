@@ -90,7 +90,7 @@ const Notifications = () => {
           <div className="mb-6 flex items-end justify-between gap-4">
             <div>
               <p className="text-sm uppercase tracking-[0.28em] text-slate-500">Account</p>
-              <h1 className="text-3xl font-bold text-slate-900">Messages</h1>
+              <h1 className="text-3xl font-bold text-slate-900">Notifications</h1>
               <p className="mt-2 text-sm text-slate-600">Compact announcements and alerts for {profile?.displayName || user.email}.</p>
             </div>
             <Link to="/dashboard" className="text-sm font-medium text-primary hover:underline">Back to dashboard</Link>
@@ -110,10 +110,10 @@ const Notifications = () => {
                 notifications.map((notification) => (
                   <div key={notification.id} className="rounded-[1.5rem] border border-slate-200 bg-slate-50 px-5 py-4">
                     <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Message</p>
-                        <h3 className="mt-2 text-lg font-semibold text-slate-900">{notification.title}</h3>
-                      </div>
+                          <div>
+                            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Notification</p>
+                            <h3 className="mt-2 text-lg font-semibold text-slate-900">{notification.title}</h3>
+                          </div>
                       <span className={`rounded-full px-3 py-1 text-xs font-semibold ${notification.audience === "all" ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700"}`}>
                         {notification.audience === "all" ? "All users" : "Selected users"}
                       </span>

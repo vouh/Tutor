@@ -94,7 +94,7 @@ export interface PaymentRecord {
   amount: number;
   requestedAmount?: number;
   mpesaReceiptNumber: string;
-  status: "pending" | "completed" | "failed";
+  status: "pending" | "completed" | "confirmed" | "failed";
   paidAt: Timestamp | null;
   checkoutRequestId?: string;
   phoneNumber?: string;
