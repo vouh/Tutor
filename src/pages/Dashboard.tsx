@@ -269,21 +269,10 @@ const Dashboard = () => {
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       <Header />
 
-      <main className="flex-1 px-4 py-6 sm:px-6">
+      <main className="flex-1 px-4 pb-6 pt-24 sm:px-6">
         <div className="mx-auto grid w-full max-w-[1440px] gap-6 lg:grid-cols-[280px,minmax(0,1fr)]">
           <aside className="sticky top-24 h-fit rounded-[2rem] bg-primary p-6 text-primary-foreground shadow-lg shadow-primary/15">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="flex h-16 w-16 items-center justify-center rounded-[1.5rem] bg-white/15 text-xl font-bold text-white">
-                  {displayName.slice(0, 2).toUpperCase() || "TU"}
-                </div>
-              </div>
-              <Button type="button" variant="outline" size="icon" onClick={() => setSettingsOpen(true)} className="shrink-0 rounded-2xl border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white">
-                <Settings2 className="h-4 w-4" />
-              </Button>
-            </div>
-
-            <div className="mt-6 space-y-2">
+            <div className="space-y-2">
               <Link to="/dashboard" className="flex w-full items-center justify-between rounded-2xl bg-white/12 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/18">
                 <span className="inline-flex items-center gap-3"><Home className="h-4 w-4 text-white" /> Dashboard</span>
                 <ChevronRight className="h-4 w-4 text-white/70" />
@@ -314,15 +303,6 @@ const Dashboard = () => {
                 <span className="inline-flex items-center gap-3"><Settings2 className="h-4 w-4 text-white" /> Settings</span>
                 <ChevronRight className="h-4 w-4 text-white/70" />
               </button>
-            </div>
-
-            <div className="mt-6 rounded-[1.5rem] bg-white/10 p-4 text-sm text-white/85">
-              <p className="text-xs uppercase tracking-[0.25em] text-white/60">Account</p>
-              <div className="mt-3 space-y-2">
-                <div className="flex items-center gap-3"><Mail className="h-4 w-4 text-white" /><span className="truncate">{displayEmail}</span></div>
-                <div className="flex items-center gap-3"><MapPin className="h-4 w-4 text-white" /><span className="truncate">{details?.location || "Location not set"}</span></div>
-                <div className="flex items-center gap-3"><User className="h-4 w-4 text-white" /><span>{profile?.role || "student"}</span></div>
-              </div>
             </div>
 
             <Button onClick={() => void logout()} variant="outline" className="mt-6 w-full justify-start gap-2 rounded-2xl border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white">
