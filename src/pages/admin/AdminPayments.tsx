@@ -25,6 +25,7 @@ type PaymentRequestFormState = {
   title: string;
   message: string;
   amount: string;
+  allowedPercentages: number[];
   audience: "all" | "selected";
   targetUserIds: string;
   courseId: string;
@@ -37,6 +38,7 @@ const emptyForm: PaymentRequestFormState = {
   title: "",
   message: "",
   amount: "",
+  allowedPercentages: [25, 50, 75, 100],
   audience: "all",
   targetUserIds: "",
   courseId: "",
@@ -56,6 +58,7 @@ export default function AdminPayments() {
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState("");
   const [userQuery, setUserQuery] = useState("");
+  const [paymentFilter, setPaymentFilter] = useState<"all" | 25 | 50 | 75 | 100>("all");
   const [page, setPage] = useState(1);
   const [form, setForm] = useState<PaymentRequestFormState>(emptyForm);
   const pageSize = 10;
@@ -103,15 +106,51 @@ export default function AdminPayments() {
 
   const filteredPayments = useMemo(() => {
     const search = query.toLowerCase();
-    return payments.filter((payment) => [payment.mpesaReceiptNumber, payment.userEmail, payment.userId, payment.courseId, payment.moduleId].filter(Boolean).join(" ").toLowerCase().includes(search));
-  }, [payments, query]);
+    return payments.filter((payment) => {
+      const matchedSearch = [payment.mpesaReceiptNumber, payment.userEmail, payment.userId, payment.courseId, payment.moduleId].filter(Boolean).join(" ").toLowerCase().includes(search);
+      if (!matchedSearch) return false;
+
+      if (paymentFilter === "all") return true;
+
+      const relatedRequest = requests.find((request) => request.id === payment.requestId || (request.courseId === payment.courseId && (!request.moduleId || request.moduleId === payment.moduleId)));
+      const paymentPercentage = payment.paymentPercentage || (relatedRequest?.amount ? Math.round((Number(payment.amount || 0) / Number(relatedRequest.amount || 1)) * 100) : null);
+
+      return paymentPercentage === paymentFilter;
+    });
+  }, [payments, query, paymentFilter, requests]);
 
   const totalPages = Math.max(1, Math.ceil(filteredPayments.length / pageSize));
   const paginatedPayments = filteredPayments.slice((page - 1) * pageSize, page * pageSize);
 
   const activeRequests = requests.filter((request) => request.isActive).length;
-  const completedPayments = payments.filter((payment) => payment.status === "completed");
+  const completedPayments = payments.filter((payment) => payment.status === "completed" || payment.status === "confirmed");
   const totalRevenue = completedPayments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+
+  const toggleAllowedPercentage = (percentage: number) => {
+    setForm((current) => {
+      const nextValues = current.allowedPercentages.includes(percentage)
+        ? current.allowedPercentages.filter((value) => value !== percentage)
+        : [...current.allowedPercentages, percentage];
+
+      return {
+        ...current,
+        allowedPercentages: nextValues.length > 0 ? nextValues.sort((left, right) => left - right) : [25, 50, 75, 100],
+      };
+    });
+  };
+
+  const resolvePaymentPercentage = (payment: PaymentRecord) => {
+    if (payment.paymentPercentage) {
+      return payment.paymentPercentage;
+    }
+
+    const relatedRequest = requests.find((request) => request.id === payment.requestId || (request.courseId === payment.courseId && (!request.moduleId || request.moduleId === payment.moduleId)));
+    if (relatedRequest?.amount) {
+      return Math.round((Number(payment.amount || 0) / Number(relatedRequest.amount || 1)) * 100);
+    }
+
+    return null;
+  };
 
   const addTargetUser = (nextUser: UserRecord) => {
     const userId = nextUser.uid || nextUser.id;
@@ -137,6 +176,7 @@ export default function AdminPayments() {
         title: form.title.trim(),
         message: form.message.trim(),
         amount: Number(form.amount || 0),
+        allowedPercentages: form.allowedPercentages,
         audience: form.audience,
         targetUserIds: selectedTargetIds,
         courseId: form.courseId,
@@ -236,6 +276,26 @@ export default function AdminPayments() {
               <span className="text-sm font-medium text-foreground">Amount (KES)</span>
               <input value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} type="number" min="1" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
             </label>
+            <div className="space-y-2 md:col-span-2">
+              <span className="text-sm font-medium text-foreground">Allowed payment splits</span>
+              <div className="flex flex-wrap gap-2">
+                {[25, 50, 75, 100].map((percentage) => {
+                  const selected = form.allowedPercentages.includes(percentage);
+
+                  return (
+                    <button
+                      key={percentage}
+                      type="button"
+                      onClick={() => toggleAllowedPercentage(percentage)}
+                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${selected ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground hover:border-primary/30 hover:text-primary"}`}
+                    >
+                      {percentage}%
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground">Learners will be able to pay against the request balance using the splits selected here.</p>
+            </div>
             <label className="space-y-2">
               <span className="text-sm font-medium text-foreground">Purpose</span>
               <select value={form.purpose} onChange={(event) => setForm({ ...form, purpose: event.target.value as PaymentRequestPurpose })} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
@@ -331,6 +391,13 @@ export default function AdminPayments() {
                   <span>{request.courseName || "No course selected"}</span>
                   <span>{request.moduleName || "No module selected"}</span>
                 </div>
+                <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                  {(request.allowedPercentages?.length ? request.allowedPercentages : [25, 50, 75, 100]).map((percentage) => (
+                    <span key={percentage} className="rounded-full border border-border bg-background px-3 py-1 font-medium text-foreground">
+                      {percentage}%
+                    </span>
+                  ))}
+                </div>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <button onClick={() => void toggleRequest(request)} className="rounded-md border border-border px-3 py-2 text-xs font-semibold text-foreground hover:bg-background">
                     {request.isActive ? "Disable" : "Enable"}
@@ -353,6 +420,18 @@ export default function AdminPayments() {
             <p className="mt-1 text-sm text-muted-foreground">Track M-Pesa receipts, amounts, and confirmation status.</p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex flex-wrap gap-2">
+              {(["all", 25, 50, 75, 100] as const).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setPaymentFilter(value)}
+                  className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${paymentFilter === value ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground hover:border-primary/30 hover:text-primary"}`}
+                >
+                  {value === "all" ? "All plans" : `${value}%`}
+                </button>
+              ))}
+            </div>
             <div className="relative w-full sm:w-72">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="Search receipts" className="w-full rounded-md border border-border bg-background py-2.5 pl-10 pr-4 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10" />
@@ -370,18 +449,20 @@ export default function AdminPayments() {
                 <th className="px-5 py-4">Receipt</th>
                 <th className="px-5 py-4">User</th>
                 <th className="px-5 py-4">Amount</th>
+                <th className="px-5 py-4">Plan</th>
                 <th className="px-5 py-4">Status</th>
                 <th className="px-5 py-4">Paid at</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {loading ? <tr><td className="px-5 py-8 text-sm text-muted-foreground" colSpan={5}>Loading payments...</td></tr> : null}
-              {!loading && paginatedPayments.length === 0 ? <tr><td className="px-5 py-8 text-sm text-muted-foreground" colSpan={5}>No payments found.</td></tr> : null}
+              {loading ? <tr><td className="px-5 py-8 text-sm text-muted-foreground" colSpan={6}>Loading payments...</td></tr> : null}
+              {!loading && paginatedPayments.length === 0 ? <tr><td className="px-5 py-8 text-sm text-muted-foreground" colSpan={6}>No payments found.</td></tr> : null}
               {!loading && paginatedPayments.map((payment) => (
                 <tr key={payment.id} className="hover:bg-muted/40">
                   <td className="px-5 py-4 font-mono text-sm text-foreground">{payment.mpesaReceiptNumber}</td>
                   <td className="px-5 py-4 text-sm text-muted-foreground">{payment.userEmail || payment.userId}</td>
                   <td className="px-5 py-4 text-sm text-foreground">KES {Number(payment.amount || 0).toLocaleString()}</td>
+                  <td className="px-5 py-4 text-sm text-muted-foreground">{resolvePaymentPercentage(payment) ? `${resolvePaymentPercentage(payment)}%` : "Full"}</td>
                   <td className="px-5 py-4 text-sm text-muted-foreground">{payment.status}</td>
                   <td className="px-5 py-4 text-sm text-muted-foreground">{payment.paidAt ? payment.paidAt.toDate().toLocaleString() : "-"}</td>
                 </tr>

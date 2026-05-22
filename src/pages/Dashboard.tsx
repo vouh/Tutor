@@ -9,7 +9,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PaymentModal from "@/components/PaymentModal";
 import { useAuth } from "@/contexts/AuthContext";
-import { asDate, getUserDetails, updateUserProfileRecord, type NotificationRecord, type PaymentRequestRecord, type UserCourseRecord, type UserDetailsRecord, type ActivityRecord } from "@/lib/adminData";
+import { asDate, getUserDetails, updateUserProfileRecord, type NotificationRecord, type PaymentRecord, type PaymentRequestRecord, type UserCourseRecord, type UserDetailsRecord, type ActivityRecord } from "@/lib/adminData";
 import { getCourseById, type Course } from "@/lib/firestore";
 import { db } from "@/lib/firebase";
 import { toast } from "sonner";
@@ -63,8 +63,10 @@ const Dashboard = () => {
   const [selectedPaymentRequest, setSelectedPaymentRequest] = useState<DashboardPaymentRequest | null>(null);
   const [notificationItems, setNotificationItems] = useState<DashboardNotification[]>([]);
   const [paymentRequests, setPaymentRequests] = useState<DashboardPaymentRequest[]>([]);
+  const [paymentHistory, setPaymentHistory] = useState<PaymentRecord[]>([]);
   const [notificationsLoading, setNotificationsLoading] = useState(true);
   const [paymentsLoading, setPaymentsLoading] = useState(true);
+  const [paymentHistoryLoading, setPaymentHistoryLoading] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
   const [activities, setActivities] = useState<DashboardActivity[]>([]);
   const [activitiesOpen, setActivitiesOpen] = useState(false);
@@ -82,6 +84,40 @@ const Dashboard = () => {
 
   const visibleNotifications = useMemo(() => notificationItems.slice(0, 5), [notificationItems]);
   const visiblePaymentRequests = useMemo(() => paymentRequests.filter((request) => request.isActive).slice(0, 5), [paymentRequests]);
+  const completedPayments = useMemo(() => paymentHistory.filter((payment) => payment.status === "completed" || payment.status === "confirmed"), [paymentHistory]);
+
+  const getPaymentSummary = (request: DashboardPaymentRequest) => {
+    const matchedPayments = completedPayments.filter((payment) => {
+      if (request.id && payment.requestId) {
+        return payment.requestId === request.id;
+      }
+
+      if (request.courseId && payment.courseId !== request.courseId) {
+        return false;
+      }
+
+      if (request.moduleId && payment.moduleId !== request.moduleId) {
+        return false;
+      }
+
+      if (payment.requestTitle && payment.requestTitle !== request.title) {
+        return false;
+      }
+
+      return true;
+    });
+
+    const paidAmount = matchedPayments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+    const remainingAmount = Math.max(0, Number(request.amount || 0) - paidAmount);
+    const paidPercentage = Number(request.amount || 0) > 0 ? Math.min(100, Math.round((paidAmount / Number(request.amount || 0)) * 100)) : 0;
+
+    return {
+      paidAmount,
+      remainingAmount,
+      paidPercentage,
+      totalPayments: matchedPayments.length,
+    };
+  };
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -148,6 +184,32 @@ const Dashboard = () => {
       broadcastUnsubscribe();
       targetedUnsubscribe();
     };
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      setPaymentHistory([]);
+      setPaymentHistoryLoading(false);
+      return;
+    }
+
+    const paymentCollection = collection(db, "payments");
+    const userPaymentsQuery = query(paymentCollection, where("userId", "==", user.uid));
+
+    const unsubscribe = onSnapshot(userPaymentsQuery, (snapshot) => {
+      const items = snapshot.docs
+        .map((document) => ({ id: document.id, ...document.data() } as PaymentRecord))
+        .sort((left, right) => {
+          const leftTime = left.paidAt?.toDate?.().getTime() || 0;
+          const rightTime = right.paidAt?.toDate?.().getTime() || 0;
+          return rightTime - leftTime;
+        });
+
+      setPaymentHistory(items);
+      setPaymentHistoryLoading(false);
+    });
+
+    return () => unsubscribe();
   }, [user]);
 
   useEffect(() => {
@@ -271,63 +333,63 @@ const Dashboard = () => {
 
       <main className="flex-1 px-4 pb-6 pt-24 sm:px-6">
         <div className="mx-auto grid w-full max-w-[1440px] gap-6 lg:grid-cols-[280px,minmax(0,1fr)]">
-          <aside className="sticky top-24 h-fit rounded-[2rem] bg-primary p-6 text-primary-foreground shadow-lg shadow-primary/15">
+          <aside className="sticky top-24 h-fit rounded-[2rem] border border-primary/20 bg-gradient-to-b from-primary to-red-700 p-6 text-primary-foreground shadow-lg shadow-primary/20">
             <div className="space-y-2">
-              <Link to="/dashboard" className="flex w-full items-center justify-between rounded-2xl bg-white/12 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/18">
-                <span className="inline-flex items-center gap-3"><Home className="h-4 w-4 text-white" /> Dashboard</span>
-                <ChevronRight className="h-4 w-4 text-white/70" />
+              <Link to="/dashboard" className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition duration-200 hover:-translate-y-0.5 hover:bg-white/20 hover:shadow-md">
+                <span className="inline-flex items-center gap-3"><Home className="h-4 w-4 text-white/90" /> Dashboard</span>
+                <ChevronRight className="h-4 w-4 text-white/70 transition group-hover:translate-x-0.5" />
               </Link>
-              <Link to="/courses" className="flex w-full items-center justify-between rounded-2xl bg-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/18 hover:shadow-sm">
-                <span className="inline-flex items-center gap-3"><BookOpen className="h-4 w-4 text-white" /> Courses</span>
+              <Link to="/courses" className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-medium text-white transition duration-200 hover:-translate-y-0.5 hover:bg-white/20 hover:shadow-md">
+                <span className="inline-flex items-center gap-3"><BookOpen className="h-4 w-4 text-white/90" /> Courses</span>
                 <ArrowRight className="h-4 w-4 text-white/70" />
               </Link>
-              <button type="button" onClick={() => setNotificationsOpen(true)} className="flex w-full items-center justify-between rounded-2xl bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/18 hover:shadow-sm">
-                <span className="inline-flex items-center gap-3"><Bell className="h-4 w-4 text-white" /> Messages</span>
-                <ChevronRight className="h-4 w-4 text-white/70" />
+              <button type="button" onClick={() => setNotificationsOpen(true)} className="group flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition duration-200 hover:-translate-y-0.5 hover:bg-white/20 hover:shadow-md">
+                <span className="inline-flex items-center gap-3"><Bell className="h-4 w-4 text-white/90 transition group-hover:scale-110" /> Messages</span>
+                <ChevronRight className="h-4 w-4 text-white/70 transition group-hover:translate-x-0.5" />
               </button>
-              <button type="button" onClick={() => setPaymentsOpen(true)} className="flex w-full items-center justify-between rounded-2xl bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/18 hover:shadow-sm">
-                <span className="inline-flex items-center gap-3"><CreditCard className="h-4 w-4 text-white" /> Payments</span>
+              <button type="button" onClick={() => setPaymentsOpen(true)} className="group flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition duration-200 hover:-translate-y-0.5 hover:bg-white/20 hover:shadow-md">
+                <span className="inline-flex items-center gap-3"><CreditCard className="h-4 w-4 text-white/90 transition group-hover:scale-110" /> Payments</span>
                 <span className="inline-flex items-center gap-2">
                   {visiblePaymentRequests.length > 0 ? <span className="rounded-full bg-white px-2 py-0.5 text-xs font-bold text-primary">{visiblePaymentRequests.length}</span> : null}
-                  <ChevronRight className="h-4 w-4 text-white/70" />
+                  <ChevronRight className="h-4 w-4 text-white/70 transition group-hover:translate-x-0.5" />
                 </span>
               </button>
-              <button type="button" onClick={() => setActivitiesOpen(true)} className="flex w-full items-center justify-between rounded-2xl bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/18 hover:shadow-sm">
-                <span className="inline-flex items-center gap-3"><Calendar className="h-4 w-4 text-white" /> Activities</span>
+              <button type="button" onClick={() => setActivitiesOpen(true)} className="group flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition duration-200 hover:-translate-y-0.5 hover:bg-white/20 hover:shadow-md">
+                <span className="inline-flex items-center gap-3"><Calendar className="h-4 w-4 text-white/90 transition group-hover:scale-110" /> Activities</span>
                 <span className="inline-flex items-center gap-2">
                   {activities.length > 0 ? <span className="rounded-full bg-white px-2 py-0.5 text-xs font-bold text-primary">{activities.length}</span> : null}
-                  <ChevronRight className="h-4 w-4 text-white/70" />
+                  <ChevronRight className="h-4 w-4 text-white/70 transition group-hover:translate-x-0.5" />
                 </span>
               </button>
-              <button type="button" onClick={() => setSettingsOpen(true)} className="flex w-full items-center justify-between rounded-2xl bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-white/18 hover:shadow-sm">
-                <span className="inline-flex items-center gap-3"><Settings2 className="h-4 w-4 text-white" /> Settings</span>
-                <ChevronRight className="h-4 w-4 text-white/70" />
+              <button type="button" onClick={() => setSettingsOpen(true)} className="group flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition duration-200 hover:-translate-y-0.5 hover:bg-white/20 hover:shadow-md">
+                <span className="inline-flex items-center gap-3"><Settings2 className="h-4 w-4 text-white/90 transition group-hover:scale-110" /> Settings</span>
+                <ChevronRight className="h-4 w-4 text-white/70 transition group-hover:translate-x-0.5" />
               </button>
             </div>
 
-            <Button onClick={() => void logout()} variant="outline" className="mt-6 w-full justify-start gap-2 rounded-2xl border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white">
+            <Button onClick={() => void logout()} variant="outline" className="mt-6 w-full justify-start gap-2 rounded-2xl border-white/20 bg-white/10 text-white transition hover:bg-white/20 hover:text-white">
               <LogOut className="h-4 w-4" /> Logout
             </Button>
           </aside>
 
           <section className="space-y-6">
-            <Card className="overflow-hidden border-border bg-card shadow-sm">
+            <Card className="overflow-hidden border border-primary/15 bg-gradient-to-br from-primary/10 via-background to-background shadow-sm">
               <CardContent className="flex flex-col gap-5 p-6 lg:flex-row lg:items-end lg:justify-between">
                 <div>
-                  <p className="text-sm uppercase tracking-[0.28em] text-muted-foreground">Dashboard</p>
+                  <p className="text-sm uppercase tracking-[0.28em] text-primary">Dashboard</p>
                   <h1 className="mt-3 text-3xl font-semibold leading-tight text-foreground sm:text-4xl">Welcome back, {displayName}</h1>
                 </div>
                 <div className="flex flex-wrap gap-3">
                   <Button type="button" onClick={() => setSettingsOpen(true)} className="rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90">
                     <Settings2 className="h-4 w-4" /> Settings
                   </Button>
-                  <Button type="button" variant="outline" onClick={() => setActivitiesOpen(true)} className="rounded-2xl border-border bg-background text-foreground hover:bg-muted">
+                  <Button type="button" variant="outline" onClick={() => setActivitiesOpen(true)} className="rounded-2xl border-primary/20 bg-background text-foreground transition hover:border-primary/30 hover:bg-primary/5 hover:text-primary">
                     <Calendar className="h-4 w-4" /> Activities
                   </Button>
-                  <Button type="button" variant="outline" onClick={() => setNotificationsOpen(true)} className="rounded-2xl border-border bg-background text-foreground hover:bg-muted">
+                  <Button type="button" variant="outline" onClick={() => setNotificationsOpen(true)} className="rounded-2xl border-primary/20 bg-background text-foreground transition hover:border-primary/30 hover:bg-primary/5 hover:text-primary">
                     <Bell className="h-4 w-4" /> Messages
                   </Button>
-                  <Button type="button" variant="outline" onClick={() => setPaymentsOpen(true)} className="rounded-2xl border-border bg-background text-foreground hover:bg-muted">
+                  <Button type="button" variant="outline" onClick={() => setPaymentsOpen(true)} className="rounded-2xl border-primary/20 bg-background text-foreground transition hover:border-primary/30 hover:bg-primary/5 hover:text-primary">
                     <CreditCard className="h-4 w-4" /> Payments
                   </Button>
                 </div>
@@ -335,15 +397,15 @@ const Dashboard = () => {
             </Card>
 
             {visiblePaymentRequests.length > 0 ? (
-              <Card className="border-amber-200 bg-amber-50 shadow-sm dark:border-amber-500/20 dark:bg-amber-500/10">
+              <Card className="border-primary/20 bg-primary/5 shadow-sm dark:border-primary/30 dark:bg-primary/10">
                 <CardContent className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-700 dark:text-amber-200">Payment request</p>
-                    <h2 className="mt-2 text-xl font-semibold text-amber-950 dark:text-amber-50">{visiblePaymentRequests[0].title}</h2>
-                    <p className="mt-1 text-sm text-amber-800 dark:text-amber-100">{visiblePaymentRequests[0].message || "You have a payment request from Tutor."}</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">Payment request</p>
+                    <h2 className="mt-2 text-xl font-semibold text-foreground">{visiblePaymentRequests[0].title}</h2>
+                    <p className="mt-1 text-sm text-muted-foreground">{visiblePaymentRequests[0].message || "You have a payment request from Tutor."}</p>
                   </div>
-                  <Button type="button" onClick={() => { setSelectedPaymentRequest(visiblePaymentRequests[0]); setPaymentsOpen(true); }} className="rounded-2xl bg-amber-600 text-white hover:bg-amber-700">
-                    Pay KES {Number(visiblePaymentRequests[0].amount || 0).toLocaleString()}
+                  <Button type="button" onClick={() => { setSelectedPaymentRequest(visiblePaymentRequests[0]); setPaymentsOpen(true); }} className="rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90">
+                    Pay KES {getPaymentSummary(visiblePaymentRequests[0]).remainingAmount.toLocaleString()}
                   </Button>
                 </CardContent>
               </Card>
@@ -583,28 +645,45 @@ const Dashboard = () => {
               </Card>
             ) : visiblePaymentRequests.length > 0 ? (
               visiblePaymentRequests.map((request) => (
-                <div key={request.id} className="rounded-[1.5rem] border border-border bg-muted px-5 py-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">{request.purpose}</p>
-                      <h3 className="mt-2 text-lg font-semibold text-foreground">{request.title}</h3>
-                      <p className="mt-2 text-sm leading-6 text-muted-foreground">{request.message || "Payment is required to continue."}</p>
-                    </div>
-                    <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-                      KES {Number(request.amount || 0).toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="mt-4 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
-                    <span>Course: {request.courseName || "General"}</span>
-                    <span>Module: {request.moduleName || "Not specified"}</span>
-                    <span>Audience: {request.audience === "all" ? "All learners" : "Selected learners"}</span>
-                    <span>Due: {asDate(request.dueDate)?.toLocaleDateString() || "No due date"}</span>
-                  </div>
-                  <div className="mt-4 flex justify-end">
-                    <Button type="button" onClick={() => setSelectedPaymentRequest(request)} className="rounded-2xl">
-                      Pay now
-                    </Button>
-                  </div>
+                <div key={request.id} className="rounded-[1.5rem] border border-primary/15 bg-primary/5 px-5 py-4 shadow-sm">
+                  {(() => {
+                    const summary = getPaymentSummary(request);
+
+                    return (
+                      <>
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <p className="text-xs uppercase tracking-[0.24em] text-primary">{request.purpose}</p>
+                            <h3 className="mt-2 text-lg font-semibold text-foreground">{request.title}</h3>
+                            <p className="mt-2 text-sm leading-6 text-muted-foreground">{request.message || "Payment is required to continue."}</p>
+                          </div>
+                          <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-primary shadow-sm dark:bg-slate-900">
+                            Due KES {Number(request.amount || 0).toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="mt-4 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
+                          <span>Course: {request.courseName || "General"}</span>
+                          <span>Module: {request.moduleName || "Not specified"}</span>
+                          <span>Audience: {request.audience === "all" ? "All learners" : "Selected learners"}</span>
+                          <span>Due: {asDate(request.dueDate)?.toLocaleDateString() || "No due date"}</span>
+                          <span>Paid: KES {summary.paidAmount.toLocaleString()}</span>
+                          <span>Remaining: KES {summary.remainingAmount.toLocaleString()}</span>
+                        </div>
+                        <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                          {(request.allowedPercentages?.length ? request.allowedPercentages : [25, 50, 75, 100]).map((percentage) => (
+                            <span key={percentage} className="rounded-full border border-primary/20 bg-white px-3 py-1 font-medium text-primary dark:bg-slate-900">
+                              {percentage}%
+                            </span>
+                          ))}
+                        </div>
+                        <div className="mt-4 flex justify-end">
+                          <Button type="button" onClick={() => setSelectedPaymentRequest(request)} className="rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90">
+                            Pay now
+                          </Button>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
               ))
             ) : (
@@ -659,6 +738,12 @@ const Dashboard = () => {
         courseId={selectedPaymentRequest?.courseId || selectedPaymentRequest?.id || "payment-request"}
         courseName={selectedPaymentRequest?.title || "Tutor payment"}
         price={Number(selectedPaymentRequest?.amount || 0)}
+        requestId={selectedPaymentRequest?.id}
+        requestTitle={selectedPaymentRequest?.title}
+        requestMessage={selectedPaymentRequest?.message}
+        allowedPercentages={selectedPaymentRequest?.allowedPercentages}
+        paidAmount={selectedPaymentRequest ? getPaymentSummary(selectedPaymentRequest).paidAmount : 0}
+        remainingAmount={selectedPaymentRequest ? getPaymentSummary(selectedPaymentRequest).remainingAmount : 0}
         onSuccess={() => {
           toast.success("Payment submitted. Tutor will confirm your access.");
           setSelectedPaymentRequest(null);

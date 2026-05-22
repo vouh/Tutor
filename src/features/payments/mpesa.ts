@@ -38,6 +38,10 @@ export interface STKPushRequest {
 	courseName?: string;
 	customerName?: string;
 	location?: string;
+	requestId?: string;
+	requestTitle?: string;
+	requestedAmount?: number;
+	paymentPercentage?: number;
 }
 
 export interface STKPushResponse {

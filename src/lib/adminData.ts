@@ -92,12 +92,16 @@ export interface PaymentRecord {
   courseId: string;
   moduleId: string;
   amount: number;
+  requestedAmount?: number;
   mpesaReceiptNumber: string;
   status: "pending" | "completed" | "failed";
   paidAt: Timestamp | null;
   checkoutRequestId?: string;
   phoneNumber?: string;
   requestId?: string;
+  requestTitle?: string;
+  paymentPercentage?: number;
+  remainingBalance?: number;
 }
 
 export type PaymentRequestPurpose = "course" | "module" | "week" | "custom";
@@ -107,6 +111,7 @@ export interface PaymentRequestRecord {
   title: string;
   message: string;
   amount: number;
+  allowedPercentages?: number[];
   audience: "all" | "selected";
   targetUserIds: string[];
   courseId: string;
@@ -821,6 +826,7 @@ export async function createPaymentRequest(request: Omit<PaymentRequestRecord, "
   return addDoc(paymentRequestsRef, {
     ...request,
     amount: Number(request.amount || 0),
+    allowedPercentages: Array.isArray(request.allowedPercentages) && request.allowedPercentages.length > 0 ? request.allowedPercentages : [25, 50, 75, 100],
     targetUserIds: request.audience === "selected" ? request.targetUserIds : [],
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -845,7 +851,7 @@ export async function getPaymentForModule(userId: string, courseId: string, modu
       where("userId", "==", userId),
       where("courseId", "==", courseId),
       where("moduleId", "==", moduleId),
-      where("status", "==", "completed")
+      where("status", "in", ["completed", "confirmed"])
     )
   );
 
@@ -858,7 +864,7 @@ export async function getCoursePayment(userId: string, courseId: string) {
       paymentsRef,
       where("userId", "==", userId),
       where("courseId", "==", courseId),
-      where("status", "==", "completed")
+      where("status", "in", ["completed", "confirmed"])
     )
   );
 
@@ -895,7 +901,7 @@ export async function markModuleComplete(userId: string, courseId: string, modul
 
 export async function getDashboardSummary() {
   const [courses, modules, users, payments] = await Promise.all([getCourses(), getModules(), getUsers(), getPayments()]);
-  const completedPayments = payments.filter((payment) => payment.status === "completed");
+  const completedPayments = payments.filter((payment) => payment.status === "completed" || payment.status === "confirmed");
   const totalRevenue = completedPayments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
 
   const activities: ActivityItem[] = [

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, CheckCircle, Loader2, Phone, X, XCircle } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { initiateSTKPush, isValidKenyanPhone, queryPaymentStatus } from './mpesa';
@@ -9,6 +9,12 @@ interface PaymentModalProps {
   courseId: string;
   courseName: string;
   price: number;
+  requestId?: string;
+  requestTitle?: string;
+  requestMessage?: string;
+  allowedPercentages?: number[];
+  paidAmount?: number;
+  remainingAmount?: number;
   onSuccess?: (result: { accessCode: string; customerName: string; location: string; phoneNumber: string }) => void;
 }
 
@@ -20,6 +26,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   courseId,
   courseName,
   price,
+  requestId,
+  requestTitle,
+  requestMessage,
+  allowedPercentages,
+  paidAmount = 0,
+  remainingAmount,
   onSuccess,
 }) => {
   const [customerName, setCustomerName] = useState('');
@@ -29,6 +41,14 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const [error, setError] = useState('');
   const [checkoutRequestId, setCheckoutRequestId] = useState('');
   const [accessCode, setAccessCode] = useState('');
+  const [selectedPercentage, setSelectedPercentage] = useState(100);
+
+  const percentageChoices = useMemo(() => (allowedPercentages && allowedPercentages.length > 0 ? allowedPercentages : [25, 50, 75, 100])
+    .map((value) => Number(value))
+    .filter((value, index, values) => Number.isFinite(value) && value > 0 && values.indexOf(value) === index)
+    .sort((left, right) => left - right), [allowedPercentages]);
+  const balanceAmount = Math.max(0, Number(remainingAmount ?? price ?? 0));
+  const amountToPay = Math.max(1, Math.round((balanceAmount || Number(price || 0)) * (selectedPercentage / 100)));
 
   const accessStorageKey = `tutor_access_code_${courseId || 'course'}`;
   const generateAccessCode = () => {
@@ -45,8 +65,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       setLocation('');
       setPhoneNumber('');
       setAccessCode('');
+      setSelectedPercentage(percentageChoices.includes(100) ? 100 : percentageChoices[percentageChoices.length - 1] || 100);
     }
-  }, [isOpen]);
+  }, [isOpen, percentageChoices]);
 
   useEffect(() => {
     if (step !== 'polling' || !checkoutRequestId) return;
@@ -104,9 +125,13 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
     const result = await initiateSTKPush({
       phoneNumber,
-      amount: price,
+      amount: amountToPay,
       courseId,
       courseName,
+      requestId,
+      requestTitle: requestTitle || courseName,
+      requestedAmount: Number(price || 0),
+      paymentPercentage: selectedPercentage,
       customerName: customerName.trim(),
       location: location.trim(),
     });
@@ -166,10 +191,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
           </div>
 
           <div className="p-6">
-            <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 mb-6">
+            <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 mb-6 space-y-2">
               <p className="text-sm text-slate-500 dark:text-slate-400">Paying for:</p>
-              <p className="font-semibold text-slate-900 dark:text-white">{courseName}</p>
-              <p className="text-2xl font-bold text-green-600 mt-2">KES {price.toLocaleString()}</p>
+              <p className="font-semibold text-slate-900 dark:text-white">{requestTitle || courseName}</p>
+              {requestMessage ? <p className="text-sm text-slate-500 dark:text-slate-400">{requestMessage}</p> : null}
+              <div className="flex flex-wrap gap-2 text-xs text-slate-500 dark:text-slate-400">
+                <span className="rounded-full bg-white px-3 py-1 dark:bg-slate-700">Due: KES {Number(price || 0).toLocaleString()}</span>
+                <span className="rounded-full bg-white px-3 py-1 dark:bg-slate-700">Paid: KES {Number(paidAmount || 0).toLocaleString()}</span>
+                <span className="rounded-full bg-white px-3 py-1 dark:bg-slate-700">Remaining: KES {balanceAmount.toLocaleString()}</span>
+              </div>
+              <p className="text-2xl font-bold text-green-600 mt-2">KES {amountToPay.toLocaleString()}</p>
             </div>
 
             <AnimatePresence mode="wait">
@@ -182,6 +213,30 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                   onSubmit={handleSubmit}
                   className="space-y-4"
                 >
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Payment amount
+                    </label>
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      {percentageChoices.map((percentage) => {
+                        const nextAmount = Math.max(1, Math.round((balanceAmount || Number(price || 0)) * (percentage / 100)));
+                        const isSelected = selectedPercentage === percentage;
+
+                        return (
+                          <button
+                            key={percentage}
+                            type="button"
+                            onClick={() => setSelectedPercentage(percentage)}
+                            className={`rounded-xl border px-3 py-3 text-left text-sm font-semibold transition ${isSelected ? 'border-green-500 bg-green-50 text-green-700 shadow-sm dark:bg-green-900/20 dark:text-green-200' : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-green-300 hover:bg-green-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'}`}
+                          >
+                            <span className="block">{percentage}%</span>
+                            <span className="block text-xs font-medium text-slate-500 dark:text-slate-400">KES {nextAmount.toLocaleString()}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                       Full Name
@@ -237,7 +292,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                     type="submit"
                     className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-4 rounded-xl font-semibold hover:shadow-lg transition-all"
                   >
-                    Pay KES {price.toLocaleString()}
+                    Pay KES {amountToPay.toLocaleString()}
                   </button>
 
                   <p className="text-xs text-center text-slate-500">
