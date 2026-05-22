@@ -102,6 +102,11 @@ export interface PaymentRecord {
   requestTitle?: string;
   paymentPercentage?: number;
   remainingBalance?: number;
+  failureReason?: string;
+  resultCode?: string;
+  merchantRequestId?: string;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
 }
 
 export type PaymentRequestPurpose = "course" | "module" | "week" | "custom";

@@ -59,6 +59,7 @@ const Dashboard = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [paymentsOpen, setPaymentsOpen] = useState(false);
+  const [paymentTab, setPaymentTab] = useState<"requests" | "history" | "failed">("requests");
   const [selectedCourse, setSelectedCourse] = useState<(UserCourseRecord & { course?: Course | null }) | null>(null);
   const [selectedPaymentRequest, setSelectedPaymentRequest] = useState<DashboardPaymentRequest | null>(null);
   const [notificationItems, setNotificationItems] = useState<DashboardNotification[]>([]);
@@ -84,7 +85,8 @@ const Dashboard = () => {
 
   const visibleNotifications = useMemo(() => notificationItems.slice(0, 5), [notificationItems]);
   const visiblePaymentRequests = useMemo(() => paymentRequests.filter((request) => request.isActive).slice(0, 5), [paymentRequests]);
-  const completedPayments = useMemo(() => paymentHistory.filter((payment) => ["completed", "confirmed"].includes(payment.status as PaymentRecord["status"])), [paymentHistory]);
+  const completedPayments = useMemo(() => paymentHistory.filter((payment) => payment.status === "completed" || payment.status === "confirmed"), [paymentHistory]);
+  const failedPayments = useMemo(() => paymentHistory.filter((payment) => payment.status === "failed"), [paymentHistory]);
 
   const getPaymentSummary = (request: DashboardPaymentRequest) => {
     const matchedPayments = completedPayments.filter((payment) => {
@@ -117,6 +119,11 @@ const Dashboard = () => {
       paidPercentage,
       totalPayments: matchedPayments.length,
     };
+  };
+
+  const openPaymentRequest = (request: DashboardPaymentRequest) => {
+    setPaymentsOpen(false);
+    setSelectedPaymentRequest(request);
   };
 
   useEffect(() => {
@@ -331,7 +338,7 @@ const Dashboard = () => {
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       <Header />
 
-      <main className="flex-1 px-4 pb-6 pt-24 sm:px-6">
+      <main className="flex-1 px-4 pb-6 pt-20 sm:px-6">
         <div className="mx-auto grid w-full max-w-[1440px] gap-6 lg:grid-cols-[280px,minmax(0,1fr)]">
           <aside className="sticky top-24 h-fit rounded-[2rem] border border-primary/20 bg-gradient-to-b from-primary to-red-700 p-6 text-primary-foreground shadow-lg shadow-primary/20">
             <div className="space-y-2">
@@ -373,25 +380,12 @@ const Dashboard = () => {
           </aside>
 
           <section className="space-y-6">
-            <Card className="overflow-hidden border border-primary/15 bg-primary shadow-sm">
-              <CardContent className="flex flex-col gap-5 p-6 lg:flex-row lg:items-end lg:justify-between">
-                <div>
-                  <p className="text-sm uppercase tracking-[0.28em] text-primary-foreground/80">Dashboard</p>
-                  <h1 className="mt-3 text-3xl font-semibold leading-tight text-primary-foreground sm:text-4xl">Welcome back, {displayName}</h1>
-                </div>
-                <div className="flex flex-wrap gap-3">
-                  <Button type="button" onClick={() => setSettingsOpen(true)} className="rounded-2xl border border-white/20 bg-white text-primary hover:bg-white/90">
-                    <Settings2 className="h-4 w-4" /> Settings
-                  </Button>
-                  <Button type="button" variant="outline" onClick={() => setActivitiesOpen(true)} className="rounded-2xl border-white/20 bg-white/10 text-white transition hover:bg-white/20 hover:text-white">
-                    <Calendar className="h-4 w-4" /> Activities
-                  </Button>
-                  <Button type="button" variant="outline" onClick={() => setNotificationsOpen(true)} className="rounded-2xl border-white/20 bg-white/10 text-white transition hover:bg-white/20 hover:text-white">
-                    <Bell className="h-4 w-4" /> Notifications
-                  </Button>
-                  <Button type="button" variant="outline" onClick={() => setPaymentsOpen(true)} className="rounded-2xl border-white/20 bg-white/10 text-white transition hover:bg-white/20 hover:text-white">
-                    <CreditCard className="h-4 w-4" /> Payments
-                  </Button>
+            <Card className="overflow-hidden border border-primary/15 bg-gradient-to-r from-primary via-red-600 to-red-700 shadow-sm">
+              <CardContent className="relative flex flex-col gap-3 px-4 py-5 sm:px-5 sm:py-6 md:flex-row md:items-end md:justify-between">
+                <div className="max-w-2xl space-y-2">
+                  <h1 className="text-2xl font-semibold leading-tight tracking-tight text-primary-foreground sm:text-3xl md:text-[2.15rem]">
+                    Hey {displayName}, let&apos;s keep the momentum going.
+                  </h1>
                 </div>
               </CardContent>
             </Card>
@@ -404,7 +398,7 @@ const Dashboard = () => {
                     <h2 className="mt-2 text-xl font-semibold text-foreground">{visiblePaymentRequests[0].title}</h2>
                     <p className="mt-1 text-sm text-muted-foreground">{visiblePaymentRequests[0].message || "You have a payment request from Tutor."}</p>
                   </div>
-                  <Button type="button" onClick={() => { setSelectedPaymentRequest(visiblePaymentRequests[0]); setPaymentsOpen(true); }} className="rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90">
+                  <Button type="button" onClick={() => openPaymentRequest(visiblePaymentRequests[0])} className="rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90">
                     Pay KES {getPaymentSummary(visiblePaymentRequests[0]).remainingAmount.toLocaleString()}
                   </Button>
                 </CardContent>
@@ -635,15 +629,31 @@ const Dashboard = () => {
           <div className="border-b border-border px-6 py-5">
             <DialogHeader className="space-y-2 text-left">
               <DialogTitle className="text-2xl font-bold text-foreground">Payments</DialogTitle>
-              <DialogDescription>Payment requests sent by Tutor appear here.</DialogDescription>
+              <DialogDescription>Requests, history, and failed payment reasons.</DialogDescription>
             </DialogHeader>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {([
+                ["requests", `Requests ${visiblePaymentRequests.length ? `(${visiblePaymentRequests.length})` : ""}`],
+                ["history", `History ${paymentHistory.length ? `(${paymentHistory.length})` : ""}`],
+                ["failed", `Failed ${failedPayments.length ? `(${failedPayments.length})` : ""}`],
+              ] as const).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setPaymentTab(value)}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${paymentTab === value ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-primary"}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
           <div className="max-h-[68vh] space-y-3 overflow-auto px-6 py-5">
-            {paymentsLoading ? (
+            {paymentsLoading || paymentHistoryLoading ? (
               <Card className="border-border bg-muted">
-                <CardContent className="p-5 text-sm text-muted-foreground">Loading payment requests...</CardContent>
+                <CardContent className="p-5 text-sm text-muted-foreground">Loading payments...</CardContent>
               </Card>
-            ) : visiblePaymentRequests.length > 0 ? (
+            ) : paymentTab === "requests" && visiblePaymentRequests.length > 0 ? (
               visiblePaymentRequests.map((request) => (
                 <div key={request.id} className="rounded-[1.5rem] border border-primary/15 bg-primary/5 px-5 py-4 shadow-sm">
                   {(() => {
@@ -664,10 +674,13 @@ const Dashboard = () => {
                         <div className="mt-4 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
                           <span>Course: {request.courseName || "General"}</span>
                           <span>Module: {request.moduleName || "Not specified"}</span>
-                          <span>Audience: {request.audience === "all" ? "All learners" : "Selected learners"}</span>
                           <span>Due: {asDate(request.dueDate)?.toLocaleDateString() || "No due date"}</span>
                           <span>Paid: KES {summary.paidAmount.toLocaleString()}</span>
                           <span>Remaining: KES {summary.remainingAmount.toLocaleString()}</span>
+                          <span>Progress: {summary.paidPercentage}% paid</span>
+                        </div>
+                        <div className="mt-3 h-2 overflow-hidden rounded-full bg-background">
+                          <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${summary.paidPercentage}%` }} />
                         </div>
                         <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                           {(request.allowedPercentages?.length ? request.allowedPercentages : [25, 50, 75, 100]).map((percentage) => (
@@ -677,7 +690,7 @@ const Dashboard = () => {
                           ))}
                         </div>
                         <div className="mt-4 flex justify-end">
-                          <Button type="button" onClick={() => setSelectedPaymentRequest(request)} className="rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90">
+                          <Button type="button" onClick={() => openPaymentRequest(request)} className="rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90">
                             Pay now
                           </Button>
                         </div>
@@ -686,12 +699,55 @@ const Dashboard = () => {
                   })()}
                 </div>
               ))
+            ) : paymentTab === "history" && paymentHistory.length > 0 ? (
+              paymentHistory.map((payment) => (
+                <div key={payment.id} className="rounded-2xl border border-border bg-muted/40 px-4 py-3">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{payment.requestTitle || payment.courseId || "Tutor payment"}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{payment.userEmail || displayEmail}</p>
+                    </div>
+                    <span className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${payment.status === "failed" ? "bg-destructive/10 text-destructive" : payment.status === "pending" ? "bg-amber-100 text-amber-700" : "bg-primary/10 text-primary"}`}>
+                      {payment.status}
+                    </span>
+                  </div>
+                  <div className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-3">
+                    <span>KES {Number(payment.amount || 0).toLocaleString()}</span>
+                    <span>{payment.paymentPercentage ? `${payment.paymentPercentage}% payment` : "Full payment"}</span>
+                    <span>{asDate(payment.paidAt)?.toLocaleString() || "-"}</span>
+                  </div>
+                </div>
+              ))
+            ) : paymentTab === "failed" && failedPayments.length > 0 ? (
+              failedPayments.map((payment) => (
+                <div key={payment.id} className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{payment.requestTitle || "Failed payment"}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{payment.userEmail || displayEmail}</p>
+                    </div>
+                    <span className="rounded-full bg-destructive/10 px-3 py-1 text-xs font-semibold text-destructive">Failed</span>
+                  </div>
+                  <p className="mt-3 rounded-xl bg-background px-3 py-2 text-sm text-destructive">
+                    {payment.failureReason || "No reason returned by M-Pesa"}
+                  </p>
+                  <div className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-3">
+                    <span>KES {Number(payment.amount || 0).toLocaleString()}</span>
+                    <span>{payment.paymentPercentage ? `${payment.paymentPercentage}% payment` : "Payment"}</span>
+                    <span>{asDate(payment.paidAt)?.toLocaleString() || "-"}</span>
+                  </div>
+                </div>
+              ))
             ) : (
               <Card className="border-dashed border-border bg-card">
                 <CardContent className="flex flex-col items-center py-14 text-center">
                   <CreditCard className="h-12 w-12 text-muted-foreground" />
-                  <h3 className="mt-4 text-xl font-semibold text-foreground">No payment requests</h3>
-                  <p className="mt-2 max-w-xl text-sm text-muted-foreground">When Tutor sends a payment request for a module, week, or course, it will appear here.</p>
+                  <h3 className="mt-4 text-xl font-semibold text-foreground">
+                    {paymentTab === "failed" ? "No failed payments" : paymentTab === "history" ? "No payment history" : "No payment requests"}
+                  </h3>
+                  <p className="mt-2 max-w-xl text-sm text-muted-foreground">
+                    {paymentTab === "failed" ? "Failed payments and M-Pesa reasons will appear here." : paymentTab === "history" ? "Successful, pending, and failed payments will appear here." : "When Tutor sends a payment request for a module, week, or course, it will appear here."}
+                  </p>
                 </CardContent>
               </Card>
             )}
@@ -745,8 +801,13 @@ const Dashboard = () => {
         paidAmount={selectedPaymentRequest ? getPaymentSummary(selectedPaymentRequest).paidAmount : 0}
         remainingAmount={selectedPaymentRequest ? getPaymentSummary(selectedPaymentRequest).remainingAmount : 0}
         onSuccess={() => {
-          toast.success("Payment submitted. Tutor will confirm your access.");
+          toast.success("Payment saved to your account.");
           setSelectedPaymentRequest(null);
+          setPaymentTab("history");
+        }}
+        onFailure={({ reason }) => {
+          toast.error(reason || "Payment failed");
+          setPaymentTab("failed");
         }}
       />
 
