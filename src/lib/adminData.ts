@@ -402,6 +402,9 @@ export async function deleteCourse(courseId: string) {
   const courseSnapshot = await getDoc(doc(db, "courses", courseId));
   const courseData = courseSnapshot.exists() ? (courseSnapshot.data() as CourseRecord) : null;
   const modulesSnapshot = await getDocs(query(modulesRef, where("courseId", "==", courseId)));
+  const enrollmentsSnapshot = await getDocs(query(collection(db, "enrollments"), where("courseId", "==", courseId)));
+  const usersWithCourseSnapshot = await getDocs(query(usersRef, where("enrolledCourses", "array-contains", courseId)));
+  const learnersWithCourseSnapshot = await getDocs(query(learnersRef, where("enrolledCourses", "array-contains", courseId)));
 
   await Promise.all([
     courseData?.thumbnailUrl ? deleteStoredFile(courseData.thumbnailUrl) : Promise.resolve(),
@@ -415,6 +418,21 @@ export async function deleteCourse(courseId: string) {
   batch.delete(doc(db, "courses", courseId));
 
   modulesSnapshot.forEach((moduleDocument) => batch.delete(moduleDocument.ref));
+  enrollmentsSnapshot.forEach((enrollmentDocument) => batch.delete(enrollmentDocument.ref));
+
+  usersWithCourseSnapshot.forEach((userDocument) => {
+    batch.update(userDocument.ref, {
+      enrolledCourses: arrayRemove(courseId),
+      updatedAt: serverTimestamp(),
+    });
+  });
+
+  learnersWithCourseSnapshot.forEach((learnerDocument) => {
+    batch.update(learnerDocument.ref, {
+      enrolledCourses: arrayRemove(courseId),
+      updatedAt: serverTimestamp(),
+    });
+  });
 
   const paymentsSnapshot = await getDocs(query(paymentsRef, where("courseId", "==", courseId)));
   paymentsSnapshot.forEach((paymentDocument) => batch.delete(paymentDocument.ref));
@@ -671,11 +689,12 @@ export async function getUserDetails(userId: string): Promise<UserDetailsRecord 
   for (const enrollmentDocument of enrollmentSnapshot.docs) {
     const enrollmentData = enrollmentDocument.data() as { courseId: string; enrolledAt?: Timestamp | null; appliedAt?: Timestamp | null; status?: string };
     const courseSnapshot = await getDoc(doc(db, "courses", enrollmentData.courseId));
+    const courseExists = courseSnapshot.exists();
     enrolledCourses.push({
       courseId: enrollmentData.courseId,
-      courseName: courseSnapshot.exists() ? String(courseSnapshot.data().title || enrollmentData.courseId) : enrollmentData.courseId,
+      courseName: courseExists ? String(courseSnapshot.data().title || "Untitled course") : "Course deleted",
       enrolledAt: enrollmentData.enrolledAt || enrollmentData.appliedAt || null,
-      status: enrollmentData.status || "pending",
+      status: courseExists ? enrollmentData.status || "pending" : "deleted",
     });
   }
 

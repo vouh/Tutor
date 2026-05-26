@@ -2,17 +2,89 @@ import React, { useState } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import SEO from '../components/SEO';
-import { Mail, Phone, MapPin, Clock, Send, MessageCircle, CheckCircle, ChevronRight, Sparkles } from 'lucide-react';
+import { Mail, Phone, MapPin, Clock, Send, MessageCircle, CheckCircle, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
+
+type ContactPayload = {
+  name: string;
+  phone: string;
+  email: string;
+  subject: string;
+  message: string;
+  time: string;
+};
+
+async function sendContactMessage(payload: ContactPayload) {
+  const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+  const templateId = import.meta.env.VITE_EMAILJS_CONTACT_TEMPLATE_ID;
+  const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+  if (!serviceId || !templateId || !publicKey) {
+    throw new Error('Contact form is not configured yet.');
+  }
+
+  const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      service_id: serviceId,
+      template_id: templateId,
+      user_id: publicKey,
+      template_params: {
+        name: payload.name,
+        email: payload.email,
+        phone: payload.phone,
+        subject: payload.subject,
+        message: payload.message,
+        time: payload.time,
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || 'Unable to submit contact form');
+  }
+}
 
 const Contact = () => {
   const [formSubmitted, setFormSubmitted] = useState(false);
-  const [activeContact, setActiveContact] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    subject: '',
+    message: '',
+  });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormSubmitted(true);
-    setTimeout(() => setFormSubmitted(false), 5000);
+    const submittedAt = new Date().toLocaleString('en-KE', { hour12: true });
+
+    setIsSubmitting(true);
+    try {
+      await sendContactMessage({ ...formData, time: submittedAt });
+
+      setFormSubmitted(true);
+      setFormData({ name: '', phone: '', email: '', subject: '', message: '' });
+      setTimeout(() => setFormSubmitted(false), 5000);
+      toast.success('Message submitted successfully');
+    } catch (error) {
+      console.error('Contact form error:', error);
+      toast.error('Unable to send message. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleInputChange = (
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = event.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const contactMethods = [
@@ -230,6 +302,9 @@ const Contact = () => {
                           <input
                             type="text"
                             required
+                            name="name"
+                            value={formData.name}
+                            onChange={handleInputChange}
                             placeholder="John Kamau"
                             className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all placeholder:text-slate-400"
                           />
@@ -239,6 +314,9 @@ const Contact = () => {
                           <input
                             type="tel"
                             required
+                            name="phone"
+                            value={formData.phone}
+                            onChange={handleInputChange}
                             placeholder="0712 345 678"
                             className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all placeholder:text-slate-400"
                           />
@@ -250,6 +328,9 @@ const Contact = () => {
                         <input
                           type="email"
                           required
+                          name="email"
+                          value={formData.email}
+                          onChange={handleInputChange}
                           placeholder="john@example.com"
                           className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all placeholder:text-slate-400"
                         />
@@ -259,6 +340,9 @@ const Contact = () => {
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Subject</label>
                         <select
                           required
+                          name="subject"
+                          value={formData.subject}
+                          onChange={handleInputChange}
                           className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                         >
                           <option value="">Select topic</option>
@@ -275,6 +359,9 @@ const Contact = () => {
                         <textarea
                           required
                           rows={4}
+                          name="message"
+                          value={formData.message}
+                          onChange={handleInputChange}
                           placeholder="How can we help you?"
                           className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all resize-none placeholder:text-slate-400"
                         ></textarea>
@@ -282,10 +369,17 @@ const Contact = () => {
                       
                       <button
                         type="submit"
+                        disabled={isSubmitting}
                         className="w-full bg-gradient-to-r from-primary to-accent text-white py-4 rounded-xl font-semibold hover:shadow-lg hover:shadow-primary/25 transition-all flex items-center justify-center gap-2"
                       >
-                        <Send size={18} />
-                        Send Message
+                        {isSubmitting ? (
+                          <>Sending...</>
+                        ) : (
+                          <>
+                            <Send size={18} />
+                            Send Message
+                          </>
+                        )}
                       </button>
                     </motion.form>
                   )}

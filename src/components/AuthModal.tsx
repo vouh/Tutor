@@ -3,6 +3,7 @@ import { X, Mail, Lock, User, Phone, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { requestSignupOtp, verifySignupOtp } from '@/lib/authOtp';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -16,7 +17,13 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTab = 'lo
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>(defaultTab);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isOtpLoading, setIsOtpLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [verificationToken, setVerificationToken] = useState('');
+  const [otpExpiresAt, setOtpExpiresAt] = useState(0);
+  const [otpStep, setOtpStep] = useState<'credentials' | 'verify'>('credentials');
+  const [timeLeftMs, setTimeLeftMs] = useState(0);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -28,8 +35,28 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTab = 'lo
     if (isOpen) {
       setActiveTab(defaultTab);
       setErrorMessage('');
+      setOtpCode('');
+      setVerificationToken('');
+      setOtpExpiresAt(0);
+      setOtpStep('credentials');
+      setTimeLeftMs(0);
     }
   }, [defaultTab, isOpen]);
+
+  useEffect(() => {
+    if (otpStep !== 'verify' || !otpExpiresAt) {
+      setTimeLeftMs(0);
+      return;
+    }
+
+    const updateCountdown = () => {
+      setTimeLeftMs(Math.max(otpExpiresAt - Date.now(), 0));
+    };
+
+    updateCountdown();
+    const interval = window.setInterval(updateCountdown, 1000);
+    return () => window.clearInterval(interval);
+  }, [otpExpiresAt, otpStep]);
 
   const getAuthErrorMessage = (error: unknown) => {
     const code = typeof error === 'object' && error && 'code' in error ? String((error as { code?: string }).code || '') : '';
@@ -58,18 +85,21 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTab = 'lo
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (activeTab === 'signup') {
+      if (otpStep === 'verify') {
+        await handleVerifyAndCreateAccount();
+        return;
+      }
+      await handleSignupRequestOtp();
+      return;
+    }
+
     setIsLoading(true);
     setErrorMessage('');
 
     try {
-      if (activeTab === 'signup') {
-        await signup(formData);
-        toast.success('Account created successfully');
-      } else {
-        await login(formData.email, formData.password);
-        toast.success('Signed in successfully');
-      }
-
+      await login(formData.email, formData.password);
+      toast.success('Signed in successfully');
       onClose();
       onSuccess?.();
       setFormData({ name: '', email: '', phone: '', password: '' });
@@ -80,6 +110,61 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTab = 'lo
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSignupRequestOtp = async () => {
+    setIsLoading(true);
+    setErrorMessage('');
+    try {
+      const result = await requestSignupOtp(formData.email.trim(), formData.name.trim());
+      setVerificationToken(result.verificationToken);
+      setOtpExpiresAt(Number(result.expiresAt || 0));
+      setOtpCode('');
+      setOtpStep('verify');
+      toast.success('Verification code sent to your email');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to send verification code.';
+      setErrorMessage(message);
+      toast.error(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyAndCreateAccount = async () => {
+    setIsOtpLoading(true);
+    setErrorMessage('');
+
+    try {
+      await verifySignupOtp(formData.email.trim(), otpCode.trim(), verificationToken);
+      await signup(formData);
+      toast.success('Account created successfully');
+      onClose();
+      onSuccess?.();
+      setFormData({ name: '', email: '', phone: '', password: '' });
+      setOtpCode('');
+      setOtpStep('credentials');
+      setVerificationToken('');
+      setOtpExpiresAt(0);
+    } catch (error) {
+      const message = getAuthErrorMessage(error);
+      setErrorMessage(message);
+      toast.error(message);
+    } finally {
+      setIsOtpLoading(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    if (timeLeftMs > 0) return;
+    await handleSignupRequestOtp();
+  };
+
+  const formatCountdown = () => {
+    const seconds = Math.ceil(timeLeftMs / 1000);
+    const minutesPart = Math.floor(seconds / 60);
+    const secondsPart = seconds % 60;
+    return `${minutesPart}:${String(secondsPart).padStart(2, '0')}`;
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -150,7 +235,14 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTab = 'lo
           {/* Tabs */}
           <div className="flex bg-gray-100 dark:bg-slate-800 mx-6 -mt-6 rounded-xl p-1 relative z-10">
             <button
-              onClick={() => setActiveTab('login')}
+              onClick={() => {
+                setActiveTab('login');
+                setOtpStep('credentials');
+                setOtpCode('');
+                setVerificationToken('');
+                setOtpExpiresAt(0);
+                setErrorMessage('');
+              }}
               className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 ${
                 activeTab === 'login'
                   ? 'bg-white dark:bg-slate-700 text-primary shadow-sm'
@@ -160,7 +252,14 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTab = 'lo
               Login
             </button>
             <button
-              onClick={() => setActiveTab('signup')}
+              onClick={() => {
+                setActiveTab('signup');
+                setOtpStep('credentials');
+                setOtpCode('');
+                setVerificationToken('');
+                setOtpExpiresAt(0);
+                setErrorMessage('');
+              }}
               className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 ${
                 activeTab === 'signup'
                   ? 'bg-white dark:bg-slate-700 text-primary shadow-sm'
@@ -174,7 +273,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTab = 'lo
           {/* Form */}
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
             <AnimatePresence mode="wait">
-              {activeTab === 'signup' && (
+              {activeTab === 'signup' && otpStep === 'credentials' && (
                 <motion.div
                   key="name"
                   initial={{ opacity: 0, height: 0 }}
@@ -223,6 +322,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTab = 'lo
                 onChange={handleChange}
                 placeholder="Email Address"
                 required
+                disabled={activeTab === 'signup' && otpStep === 'verify'}
                 className="w-full pl-12 pr-4 py-3.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-sm"
               />
             </div>
@@ -237,6 +337,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTab = 'lo
                 onChange={handleChange}
                 placeholder="Password"
                 required
+                disabled={activeTab === 'signup' && otpStep === 'verify'}
                 className="w-full pl-12 pr-12 py-3.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-sm"
               />
               <button
@@ -247,6 +348,35 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTab = 'lo
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
+
+            {activeTab === 'signup' && otpStep === 'verify' && (
+              <div className="space-y-3 rounded-xl border border-primary/25 bg-primary/5 p-4">
+                <p className="text-sm text-slate-700 dark:text-slate-200">
+                  Enter the 6-digit code sent to <strong>{formData.email.trim()}</strong>.
+                </p>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="123456"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-center text-lg tracking-[0.5em] outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/40 dark:border-slate-700 dark:bg-slate-800"
+                />
+                <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                  <span>{timeLeftMs > 0 ? `Code expires in ${formatCountdown()}` : 'Code expired. Request a new one.'}</span>
+                  <button
+                    type="button"
+                    onClick={() => void handleResendCode()}
+                    disabled={isLoading || timeLeftMs > 0}
+                    className="font-medium text-primary disabled:opacity-50"
+                  >
+                    Request new code
+                  </button>
+                </div>
+              </div>
+            )}
 
             {errorMessage ? (
               <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -263,20 +393,38 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTab = 'lo
             )}
 
             {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-gradient-to-r from-primary to-accent text-white py-3.5 rounded-xl font-semibold hover:shadow-lg hover:shadow-primary/25 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-70"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 size={20} className="animate-spin" />
-                  <span>{activeTab === 'login' ? 'Signing in...' : 'Creating account...'}</span>
-                </>
-              ) : (
-                <span>{activeTab === 'login' ? 'Sign In' : 'Create Account'}</span>
-              )}
-            </button>
+            {activeTab === 'signup' && otpStep === 'verify' ? (
+              <button
+                type="button"
+                onClick={() => void handleVerifyAndCreateAccount()}
+                disabled={isOtpLoading || otpCode.length !== 6 || timeLeftMs <= 0}
+                className="w-full bg-gradient-to-r from-primary to-accent text-white py-3.5 rounded-xl font-semibold hover:shadow-lg hover:shadow-primary/25 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-70"
+              >
+                {isOtpLoading ? (
+                  <>
+                    <Loader2 size={20} className="animate-spin" />
+                    <span>Verifying code...</span>
+                  </>
+                ) : (
+                  <span>Verify Code & Create Account</span>
+                )}
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-gradient-to-r from-primary to-accent text-white py-3.5 rounded-xl font-semibold hover:shadow-lg hover:shadow-primary/25 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-70"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 size={20} className="animate-spin" />
+                    <span>{activeTab === 'login' ? 'Signing in...' : 'Sending code...'}</span>
+                  </>
+                ) : (
+                  <span>{activeTab === 'login' ? 'Sign In' : 'Continue'}</span>
+                )}
+              </button>
+            )}
 
             {/* Divider */}
             <div className="relative my-6">
@@ -293,7 +441,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTab = 'lo
               <button
                 type="button"
                 onClick={() => void handleGoogleSignIn()}
-                disabled={isLoading}
+                disabled={isLoading || (activeTab === 'signup' && otpStep === 'verify')}
                 className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 py-3 font-medium transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-70 dark:border-slate-700 dark:hover:bg-slate-800"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">

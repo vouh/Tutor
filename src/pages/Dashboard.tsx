@@ -4,7 +4,7 @@ import { collection, onSnapshot, query, where, orderBy } from "firebase/firestor
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowRight, Bell, BookOpen, ChevronRight, CreditCard, Eye, Home, LogOut, Mail, MapPin, Settings2, User, Calendar, Video, Tv } from "lucide-react";
+import { ArrowRight, Bell, BookOpen, ChevronRight, CreditCard, Eye, Home, LogOut, Mail, MapPin, Settings2, User, Calendar, Video, Tv, X } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PaymentModal from "@/components/PaymentModal";
@@ -72,6 +72,7 @@ const Dashboard = () => {
   const [activities, setActivities] = useState<DashboardActivity[]>([]);
   const [activitiesOpen, setActivitiesOpen] = useState(false);
   const [activitiesLoading, setActivitiesLoading] = useState(true);
+  const [showDeletedCoursesNotice, setShowDeletedCoursesNotice] = useState(true);
   const [profileForm, setProfileForm] = useState<ProfileFormState>({
     fullName: "",
     email: "",
@@ -87,6 +88,14 @@ const Dashboard = () => {
   const visiblePaymentRequests = useMemo(() => paymentRequests.filter((request) => request.isActive).slice(0, 5), [paymentRequests]);
   const completedPayments = useMemo(() => paymentHistory.filter((payment) => payment.status === "completed" || payment.status === "confirmed"), [paymentHistory]);
   const failedPayments = useMemo(() => paymentHistory.filter((payment) => payment.status === "failed"), [paymentHistory]);
+  const activeCourses = useMemo(() => courses.filter((courseItem) => courseItem.status !== "deleted"), [courses]);
+  const deletedCourses = useMemo(() => courses.filter((courseItem) => courseItem.status === "deleted"), [courses]);
+
+  useEffect(() => {
+    if (deletedCourses.length > 0) {
+      setShowDeletedCoursesNotice(true);
+    }
+  }, [deletedCourses.length]);
 
   const getPaymentSummary = (request: DashboardPaymentRequest) => {
     const matchedPayments = completedPayments.filter((payment) => {
@@ -138,10 +147,17 @@ const Dashboard = () => {
       try {
         const details = await getUserDetails(user.uid);
         setDetails(details);
-        const mappedCourses = await Promise.all((details?.enrolledCourses || []).map(async (item) => ({
-          ...item,
-          course: await getCourseById(item.courseId),
-        })));
+        const mappedCourses = await Promise.all((details?.enrolledCourses || []).map(async (item) => {
+          const course = await getCourseById(item.courseId);
+          const safeCourseName = course?.title || (item.courseName && item.courseName !== item.courseId ? item.courseName : "Course deleted");
+
+          return {
+            ...item,
+            course,
+            courseName: safeCourseName,
+            status: course ? item.status : "deleted",
+          };
+        }));
         setCourses(mappedCourses);
       } catch {
         toast.error("Unable to load your dashboard");
@@ -485,24 +501,24 @@ const Dashboard = () => {
                 <Card className="border-border bg-card shadow-sm">
                   <CardContent className="p-6 text-sm text-muted-foreground">Loading your learning dashboard...</CardContent>
                 </Card>
-              ) : courses.length > 0 ? (
+              ) : activeCourses.length > 0 ? (
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {courses.map((item) => (
+                  {activeCourses.map((item) => (
                     <Card key={item.courseId} className="overflow-hidden border-border bg-card shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md">
                       <div className="relative h-44 bg-muted">
                         <img
                           src={item.course?.thumbnailUrl || "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=800&q=80"}
-                          alt={item.courseName}
+                          alt={item.courseName || "Course"}
                           className="h-full w-full object-cover"
                         />
-                        <button type="button" onClick={() => setSelectedCourse(item)} className="absolute right-3 top-3 inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-lg transition hover:bg-muted" aria-label={`View details for ${item.courseName}`}>
+                        <button type="button" onClick={() => setSelectedCourse(item)} className="absolute right-3 top-3 inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-lg transition hover:bg-muted" aria-label={`View details for ${item.courseName || "course"}`}>
                           <Eye className="h-4 w-4" />
                         </button>
                       </div>
                       <CardContent className="space-y-4 p-4">
                         <div>
                           <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Course</p>
-                          <h3 className="mt-2 truncate text-lg font-semibold text-foreground">{item.courseName}</h3>
+                          <h3 className="mt-2 truncate text-lg font-semibold text-foreground">{item.courseName || "Untitled course"}</h3>
                           <p className="mt-1 text-sm text-muted-foreground">{item.course?.category || "Course access"}</p>
                         </div>
                         <div className="flex items-center justify-between rounded-2xl bg-muted px-4 py-3 text-sm">
@@ -525,7 +541,29 @@ const Dashboard = () => {
                     </Card>
                   ))}
                 </div>
-              ) : (
+              ) : null}
+
+              {!loading && deletedCourses.length > 0 && showDeletedCoursesNotice ? (
+                <Card className="border-amber-200 bg-amber-50/50 shadow-sm dark:border-amber-900/40 dark:bg-amber-950/20">
+                  <CardContent className="flex items-start justify-between gap-3 p-5 text-sm text-amber-900 dark:text-amber-200">
+                    <p>
+                      {deletedCourses.length === 1
+                        ? "1 enrolled course was deleted by admin and is no longer available."
+                        : `${deletedCourses.length} enrolled courses were deleted by admin and are no longer available.`}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowDeletedCoursesNotice(false)}
+                      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-amber-300 text-amber-700 transition hover:bg-amber-100 dark:border-amber-700 dark:text-amber-200 dark:hover:bg-amber-900/40"
+                      aria-label="Dismiss deleted courses notice"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </CardContent>
+                </Card>
+              ) : null}
+
+              {!loading && activeCourses.length === 0 ? (
                 <Card className="border-dashed border-border bg-card shadow-sm">
                   <CardContent className="flex flex-col items-center justify-center py-14 text-center">
                     <BookOpen className="mb-4 h-12 w-12 text-muted-foreground" />
@@ -536,7 +574,7 @@ const Dashboard = () => {
                     </Link>
                   </CardContent>
                 </Card>
-              )}
+              ) : null}
             </section>
           </section>
         </div>

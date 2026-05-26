@@ -92,6 +92,16 @@ const Auth = () => {
                 {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
                 {isLoading ? "Signing in" : "Log in"}
               </Button>
+
+              <Button asChild variant="outline" className="w-full rounded-2xl py-6">
+                <Link to="/courses">
+                  Sign up
+                </Link>
+              </Button>
+
+              <p className="text-center text-xs text-slate-500">
+                New here? Sign up from a course page to create your learner account.
+              </p>
             </form>
           </section>
         </div>

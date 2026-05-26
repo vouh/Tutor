@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import { Sparkles, Loader2, BookOpen, ArrowRight } from 'lucide-react';
+import { Loader2, BookOpen, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getActiveCourses, type Course } from '../lib/firestore';
 
@@ -29,28 +29,7 @@ const Courses = () => {
       <Header />
 
       <main className="flex-1">
-        <section className="bg-gradient-to-br from-slate-900 via-slate-800 to-primary/40 text-white pt-24 pb-14">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="space-y-4"
-            >
-              <span className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full text-sm mx-auto">
-                <Sparkles size={16} className="text-yellow-300" />
-                Premium Education
-              </span>
-              <h1 className="text-3xl sm:text-4xl font-bold font-montserrat">
-                Our Professional Courses
-              </h1>
-              <p className="text-white/80 text-base sm:text-lg">
-                High-quality revision materials and courses designed for your success.
-              </p>
-            </motion.div>
-          </div>
-        </section>
-
-        <section className="py-12 px-4 sm:px-6 lg:px-8">
+        <section className="pt-24 pb-12 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-20">
