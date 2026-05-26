@@ -116,12 +116,13 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTab = 'lo
     setIsLoading(true);
     setErrorMessage('');
     try {
+      await signup(formData);
       const result = await requestSignupOtp(formData.email.trim(), formData.name.trim());
       setVerificationToken(result.verificationToken);
       setOtpExpiresAt(Number(result.expiresAt || 0));
       setOtpCode('');
       setOtpStep('verify');
-      toast.success('Verification code sent to your email');
+      toast.success('Account created. Check your email for the code.');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to send verification code.';
       setErrorMessage(message);
@@ -137,8 +138,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTab = 'lo
 
     try {
       await verifySignupOtp(formData.email.trim(), otpCode.trim(), verificationToken);
-      await signup(formData);
-      toast.success('Account created successfully');
+      toast.success('Account verified successfully');
       onClose();
       onSuccess?.();
       setFormData({ name: '', email: '', phone: '', password: '' });
@@ -352,16 +352,16 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTab = 'lo
             {activeTab === 'signup' && otpStep === 'verify' && (
               <div className="space-y-3 rounded-xl border border-primary/25 bg-primary/5 p-4">
                 <p className="text-sm text-slate-700 dark:text-slate-200">
-                  Enter the 6-digit code sent to <strong>{formData.email.trim()}</strong>.
+                  Enter the 5-digit code sent to <strong>{formData.email.trim()}</strong>.
                 </p>
                 <input
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]*"
-                  maxLength={6}
+                  maxLength={5}
                   value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  placeholder="123456"
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 5))}
+                  placeholder="12345"
                   className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-center text-lg tracking-[0.5em] outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/40 dark:border-slate-700 dark:bg-slate-800"
                 />
                 <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
@@ -397,7 +397,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTab = 'lo
               <button
                 type="button"
                 onClick={() => void handleVerifyAndCreateAccount()}
-                disabled={isOtpLoading || otpCode.length !== 6 || timeLeftMs <= 0}
+                disabled={isOtpLoading || otpCode.length !== 5 || timeLeftMs <= 0}
                 className="w-full bg-gradient-to-r from-primary to-accent text-white py-3.5 rounded-xl font-semibold hover:shadow-lg hover:shadow-primary/25 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-70"
               >
                 {isOtpLoading ? (
@@ -418,10 +418,10 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTab = 'lo
                 {isLoading ? (
                   <>
                     <Loader2 size={20} className="animate-spin" />
-                    <span>{activeTab === 'login' ? 'Signing in...' : 'Sending code...'}</span>
+                    <span>{activeTab === 'login' ? 'Signing in...' : 'Creating account...'}</span>
                   </>
                 ) : (
-                  <span>{activeTab === 'login' ? 'Sign In' : 'Continue'}</span>
+                  <span>{activeTab === 'login' ? 'Sign In' : 'Sign Up'}</span>
                 )}
               </button>
             )}

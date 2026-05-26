@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { readEnv } from '../_core/env.js';
 
-const OTP_LENGTH = 6;
+const OTP_LENGTH = 5;
 export const OTP_TTL_MS = 90 * 1000;
 
 function base64UrlEncode(value) {

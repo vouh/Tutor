@@ -4,7 +4,7 @@ import { signValue, verifyOtpToken } from './_otp.js';
 import { readEnv } from '../_core/env.js';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const OTP_REGEX = /^\d{6}$/;
+const OTP_REGEX = /^\d{5}$/;
 
 export default async function handler(req, res) {
 	if (req.method === 'OPTIONS') {
@@ -28,7 +28,7 @@ export default async function handler(req, res) {
 		}
 
 		if (!OTP_REGEX.test(otp)) {
-			return badRequest(res, 'Enter the 6-digit verification code.');
+			return badRequest(res, 'Enter the 5-digit verification code.');
 		}
 
 		if (!verificationToken) {
