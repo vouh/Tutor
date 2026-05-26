@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import { readEnv } from '../_core/env.js';
 
 const OTP_LENGTH = 5;
-export const OTP_TTL_MS = 90 * 1000;
+export const OTP_TTL_MS = 5 * 60 * 1000;
 
 function base64UrlEncode(value) {
 	return Buffer.from(value)
@@ -84,7 +84,7 @@ export async function sendOtpEmail({ toEmail, toName, otpCode }) {
 				passcode: otpCode,
 				otp_code: otpCode,
 				time: expiresAt,
-				expires_in: '1 minute 30 seconds',
+				expires_in: '5 minutes',
 				website_link: readEnv('APP_URL', { required: false }) || readEnv('DOMAIN', { required: false }) || 'https://tu-tor.vercel.app',
 				company_name: 'TutorKE',
 				from_name: fromName,

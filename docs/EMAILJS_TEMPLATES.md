@@ -20,7 +20,7 @@ Use these HTML bodies in EmailJS with the Tutor branding.
         <div style="font-size:12px;letter-spacing:.24em;text-transform:uppercase;opacity:.78;">Verification Code</div>
         <div style="margin-top:10px;font-size:36px;font-weight:800;letter-spacing:.18em;">{{passcode}}</div>
       </div>
-      <p style="margin:0;font-size:14px;line-height:1.7;opacity:.92;">This code expires at <strong>{{time}}</strong>.</p>
+      <p style="margin:0;font-size:14px;line-height:1.7;opacity:.92;">This code is valid for 5 minutes and expires at <strong>{{time}}</strong>.</p>
       <p style="margin:16px 0 0;font-size:14px;line-height:1.7;opacity:.9;">If you did not request this, ignore this email. TutorKE will never ask for your code outside the platform.</p>
       <p style="margin:20px 0 0;font-size:14px;line-height:1.7;opacity:.9;">Visit <a href="{{website_link}}" style="color:#fff;font-weight:700;text-decoration:underline;">{{website_link}}</a></p>
     </div>

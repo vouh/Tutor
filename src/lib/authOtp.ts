@@ -12,6 +12,7 @@ const API_ORIGIN = configuredApiOrigin ||
 
 const API_BASE = `${API_ORIGIN}/api/auth`;
 const OTP_FALLBACK_STORAGE_KEY = 'signup_otp_fallback';
+const OTP_TTL_MS = 5 * 60 * 1000;
 
 type RequestOtpResponse = {
   success: boolean;
@@ -75,7 +76,7 @@ export async function requestSignupOtp(email: string, name: string) {
   }
 
   const otp = generateLocalOtpCode();
-  const expiresAt = Date.now() + 90_000;
+  const expiresAt = Date.now() + OTP_TTL_MS;
   const payload: LocalOtpPayload = { email: normalizedEmail, otp, expiresAt };
   sessionStorage.setItem(OTP_FALLBACK_STORAGE_KEY, JSON.stringify(payload));
 
@@ -91,7 +92,7 @@ export async function requestSignupOtp(email: string, name: string) {
     passcode: otp,
     otp_code: otp,
     time: new Date(expiresAt).toLocaleString('en-KE', { hour12: true }),
-    expires_in: '1 minute 30 seconds',
+    expires_in: '5 minutes',
     website_link: window.location.origin,
     company_name: 'TutorKE',
     from_name: 'TutorKE',

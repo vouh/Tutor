@@ -32,15 +32,24 @@ export default function AdminUsers() {
   const pageSize = 10;
 
   const loadUsers = async () => {
-    const [userData, courseData] = await Promise.all([getUsers(), getCourses()]);
-    setUsers(userData);
-    setCourses(courseData);
+    const [usersResult, coursesResult] = await Promise.allSettled([getUsers(), getCourses()]);
+
+    if (usersResult.status === 'fulfilled') {
+      setUsers(usersResult.value);
+    } else {
+      toast.error('Failed to load learners');
+      setUsers([]);
+    }
+
+    if (coursesResult.status === 'fulfilled') {
+      setCourses(coursesResult.value);
+    } else {
+      setCourses([]);
+    }
   };
 
   useEffect(() => {
-    loadUsers()
-      .catch(() => toast.error("Failed to load users"))
-      .finally(() => setLoading(false));
+    void loadUsers().finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
