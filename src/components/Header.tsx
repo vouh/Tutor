@@ -162,68 +162,90 @@ const Header = () => {
           </div>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Mobile Sidebar (left slide-in) */}
         <AnimatePresence>
           {mobileMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="md:hidden bg-white dark:bg-slate-900 border-t shadow-xl"
-            >
-              <nav className="px-4 py-4 space-y-1">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.name}
-                    to={item.path}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`block px-4 py-3.5 rounded-xl text-sm font-medium transition-colors ${
-                      isActive(item.path)
-                        ? 'bg-primary/10 text-primary'
-                        : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    {item.name}
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setMobileMenuOpen(false)}
+                className="fixed inset-0 z-40 bg-black/50 md:hidden"
+              />
+
+              <motion.aside
+                initial={{ x: '-100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '-100%' }}
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                className="fixed inset-y-0 left-0 z-50 w-80 max-w-full bg-white dark:bg-slate-900 shadow-xl p-4 md:hidden overflow-auto"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <Link to="/" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2">
+                    <img src={activeLogo} alt="TutorKE logo" className="w-12 h-12 rounded-xl object-cover" />
                   </Link>
-                ))}
-                {user ? (
-                  <>
+                  <button onClick={() => setMobileMenuOpen(false)} className="p-2 rounded-md text-slate-700 dark:text-slate-200">
+                    <X size={24} />
+                  </button>
+                </div>
+
+                <nav className="space-y-1">
+                  {navItems.map((item) => (
                     <Link
-                      to="/dashboard"
+                      key={item.name}
+                      to={item.path}
                       onClick={() => setMobileMenuOpen(false)}
-                      className="block px-4 py-3.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      className={`block px-4 py-3.5 rounded-xl text-sm font-medium transition-colors ${
+                        isActive(item.path)
+                          ? 'bg-primary/10 text-primary'
+                          : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
                     >
-                      Dashboard
+                      {item.name}
                     </Link>
-                    <button
-                      onClick={() => { void logout(); setMobileMenuOpen(false); }}
-                      className="w-full px-4 py-3.5 rounded-xl text-sm font-medium text-left text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                    >
-                      Logout
-                    </button>
-                  </>
-                ) : null}
-                <div className="pt-4 space-y-2 border-t mt-2">
-                  {!user ? (
+                  ))}
+
+                  {user ? (
                     <>
-                      <button 
-                        onClick={() => openAuth('login')}
-                        className="w-full px-4 py-3.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left flex items-center gap-2"
+                      <Link
+                        to="/dashboard"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="block px-4 py-3.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                       >
-                        <User size={18} />
-                        Login
-                      </button>
-                      <button 
-                        onClick={() => openAuth('signup')}
-                        className="w-full bg-gradient-to-r from-primary to-accent text-white px-4 py-3.5 rounded-xl text-sm font-semibold"
+                        Dashboard
+                      </Link>
+                      <button
+                        onClick={() => { void logout(); setMobileMenuOpen(false); }}
+                        className="w-full px-4 py-3.5 rounded-xl text-sm font-medium text-left text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                       >
-                        Get Started Free
+                        Logout
                       </button>
                     </>
                   ) : null}
-                </div>
-              </nav>
-            </motion.div>
+
+                  <div className="pt-4 space-y-2 border-t mt-2">
+                    {!user ? (
+                      <>
+                        <button 
+                          onClick={() => openAuth('login')}
+                          className="w-full px-4 py-3.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left flex items-center gap-2"
+                        >
+                          <User size={18} />
+                          Login
+                        </button>
+                        <button 
+                          onClick={() => openAuth('signup')}
+                          className="w-full bg-gradient-to-r from-primary to-accent text-white px-4 py-3.5 rounded-xl text-sm font-semibold"
+                        >
+                          Get Started Free
+                        </button>
+                      </>
+                    ) : null}
+                  </div>
+                </nav>
+              </motion.aside>
+            </>
           )}
         </AnimatePresence>
       </header>

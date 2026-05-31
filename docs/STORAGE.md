@@ -70,3 +70,6 @@ VITE_STORAGE_EMULATOR_PORT=9199
 Notes:
 - Emulator avoids any CORS issues and is ideal for local testing of upload flows.
 - If you prefer a server-side proxy, implement a Cloud Function that accepts file upload and uses the Admin SDK to store to GCS (no CORS in that flow).
+
+Developer helper:
+- Use the client helper at `src/lib/storage.ts` to upload PDF files, get download URLs, and delete files during development. It wraps `uploadBytesResumable`, `getDownloadURL`, and `deleteObject`.

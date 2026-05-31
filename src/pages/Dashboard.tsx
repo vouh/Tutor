@@ -489,8 +489,7 @@ const Dashboard = () => {
             <section>
               <div className="mb-4 flex items-end justify-between gap-3">
                 <div>
-                  <p className="text-sm uppercase tracking-[0.24em] text-muted-foreground">Courses</p>
-                  <h2 className="text-2xl font-semibold text-foreground">Enrolled courses</h2>
+                  <p className="text-sm uppercase tracking-[0.24em] text-muted-foreground"> Enrolled Courses</p>
                 </div>
                 <Link to="/courses" className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline">
                   Browse more <ArrowRight className="h-4 w-4" />
