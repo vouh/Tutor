@@ -30,7 +30,6 @@ export function AdminLayout() {
     if (location.pathname.includes("/notifications")) return "Notifications";
     if (location.pathname.includes("/applications")) return "Applications";
     if (location.pathname.includes("/users")) return "Users";
-    if (location.pathname.includes("/applications")) return "Applications";
     if (location.pathname.includes("/modules")) return "Modules";
     if (location.pathname.includes("/courses")) return "Courses";
     if (location.pathname.includes("/activities")) return "Activities";
@@ -78,7 +77,7 @@ export function AdminLayout() {
       {mobileOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <button aria-label="Close menu" onClick={() => setMobileOpen(false)} className="absolute inset-0 bg-black/50" />
-          <div className="absolute left-0 top-0 h-full w-80 max-w-[85vw] bg-card shadow-2xl">
+          <div className="absolute left-0 top-0 h-full w-[min(20rem,85vw)] overflow-y-auto bg-card shadow-2xl">
             <div className="flex items-center justify-between border-b px-5 py-4">
               <div className="flex items-center gap-3">
                 <img src={activeLogo} alt="Tutor" className="h-10 w-10 rounded-2xl object-cover" />
@@ -115,7 +114,7 @@ export function AdminLayout() {
       )}
 
       <div className="flex min-h-screen flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-card/90 px-4 py-3 backdrop-blur sm:px-5 lg:px-6">
+        <header className="sticky top-0 z-30 flex flex-col gap-3 border-b border-border bg-card/90 px-3 py-3 backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:px-5 lg:px-6">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setMobileOpen(true)}
@@ -125,10 +124,10 @@ export function AdminLayout() {
             </button>
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Admin console</p>
-              <h1 className="text-xl font-bold text-foreground">{currentTitle}</h1>
+              <h1 className="text-lg font-bold text-foreground sm:text-xl">{currentTitle}</h1>
             </div>
           </div>
-          <div className="hidden items-center gap-2 sm:flex">
+          <div className="hidden items-center gap-2 sm:flex sm:flex-wrap sm:justify-end">
             <button
               onClick={() => setTheme(isDark ? "light" : "dark")}
               className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition hover:border-primary hover:text-primary"

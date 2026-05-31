@@ -299,20 +299,25 @@ export default function CourseViewer() {
 
         <div className="flex min-h-screen flex-col pt-16">
           <div className="flex flex-1">
-            <div className="hidden w-84 shrink-0 lg:block lg:w-[22rem]">{sidebar}</div>
-            {mobileSidebarOpen ? <div className="fixed inset-0 z-40 lg:hidden"><div className="absolute inset-0 bg-black/40" onClick={() => setMobileSidebarOpen(false)} /><div className="absolute inset-y-0 left-0 w-80 max-w-[86vw]">{sidebar}</div></div> : null}
+            <div className="hidden w-[21rem] shrink-0 lg:block">{sidebar}</div>
+            {mobileSidebarOpen ? (
+              <div className="fixed inset-0 z-40 lg:hidden">
+                <div className="absolute inset-0 bg-black/40" onClick={() => setMobileSidebarOpen(false)} />
+                <div className="absolute inset-y-0 left-0 w-[min(21rem,88vw)] overflow-y-auto shadow-2xl">{sidebar}</div>
+              </div>
+            ) : null}
 
-          <main className="flex-1 bg-[linear-gradient(180deg,_rgba(255,255,255,0.85),_rgba(247,248,250,1))] px-4 py-6 sm:px-6 dark:bg-[linear-gradient(180deg,_rgba(2,6,23,1),_rgba(15,23,42,1))]">
-            <div className="mx-auto grid max-w-7xl gap-6 xl:grid-cols-[minmax(0,1fr),320px]">
+          <main className="flex-1 bg-[linear-gradient(180deg,_rgba(255,255,255,0.9),_rgba(247,248,250,1))] px-3 py-4 sm:px-4 sm:py-5 lg:px-6 dark:bg-[linear-gradient(180deg,_rgba(2,6,23,1),_rgba(15,23,42,1))]">
+            <div className="mx-auto grid max-w-7xl gap-4 xl:grid-cols-[minmax(0,1fr),320px]">
               <section className="overflow-hidden rounded-[1.5rem] border border-border bg-card shadow-sm">
-                <div className="border-b border-border px-6 py-5">
+                <div className="border-b border-border px-4 py-4 sm:px-6 sm:py-5">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">Module {activeModule?.order || "-"}</p>
-                      <h1 className="mt-2 text-3xl font-bold tracking-tight text-foreground">{activeLesson?.title || activeModule?.title || "Select a module"}</h1>
+                      <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{activeLesson?.title || activeModule?.title || "Select a module"}</h1>
                       {activeModule?.description ? <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{activeModule.description}</p> : null}
                     </div>
-                    <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                       <Button variant="outline" onClick={() => setMobileSidebarOpen(true)} className="gap-2 rounded-full lg:hidden">
                         <Menu className="h-4 w-4" /> Modules
                       </Button>
@@ -323,7 +328,7 @@ export default function CourseViewer() {
                   </div>
                 </div>
 
-                <div className="min-h-[62vh] px-6 py-6">
+                <div className="min-h-[62vh] px-4 py-4 sm:px-6 sm:py-6">
                   {lessonLoading ? (
                     <div className="flex min-h-[50vh] items-center justify-center rounded-2xl border border-dashed border-border bg-muted text-muted-foreground">
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading lesson content
@@ -335,20 +340,20 @@ export default function CourseViewer() {
                   )}
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-6 py-5">
-                  <Button variant="outline" onClick={() => moveModule("previous")} disabled={activeIndex <= 0} className="gap-2 rounded-full">
+                <div className="flex flex-col gap-3 border-t border-border px-4 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:px-6 sm:py-5">
+                  <Button variant="outline" onClick={() => moveModule("previous")} disabled={activeIndex <= 0} className="w-full gap-2 rounded-full sm:w-auto">
                     <ChevronLeft className="h-4 w-4" /> Previous Module
                   </Button>
-                  <Button onClick={() => moveModule("next")} disabled={activeIndex < 0 || activeIndex >= modules.length - 1} className="gap-2 rounded-full">
+                  <Button onClick={() => moveModule("next")} disabled={activeIndex < 0 || activeIndex >= modules.length - 1} className="w-full gap-2 rounded-full sm:w-auto">
                     Next Module <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
               </section>
 
-              <aside className="space-y-4">
-                <div className="rounded-[1.5rem] border border-border bg-card p-5 shadow-sm">
+              <aside className="space-y-4 xl:sticky xl:top-24 xl:self-start">
+                <div className="rounded-[1.5rem] border border-border bg-card p-4 shadow-sm sm:p-5">
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Status</p>
-                  <p className="mt-3 text-3xl font-bold text-foreground">{progress}% complete</p>
+                  <p className="mt-3 text-2xl font-bold text-foreground sm:text-3xl">{progress}% complete</p>
                   <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
                     <div className="h-full rounded-full bg-gradient-to-r from-primary to-red-400" style={{ width: `${progress}%` }} />
                   </div>
@@ -357,7 +362,7 @@ export default function CourseViewer() {
                   </Button>
                 </div>
 
-                <div className="rounded-[1.5rem] border border-border bg-card p-5 shadow-sm">
+                <div className="rounded-[1.5rem] border border-border bg-card p-4 shadow-sm sm:p-5">
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Content</p>
                   <div className="mt-3 flex items-center gap-3 text-sm text-muted-foreground">
                     <PlayCircle className="h-5 w-5 text-primary" />

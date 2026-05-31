@@ -163,7 +163,7 @@ const HeroSection = () => {
           className="grid grid-cols-3 gap-4 sm:gap-8 max-w-md mx-auto"
         >
           {[
-            value: '5K+', label: 'Learners' },
+            { value: '5K+', label: 'Learners' },
             { value: 'Guided', label: 'Learning Paths' },
             { value: 'Trusted', label: 'Support' },
           ].map((stat) => (

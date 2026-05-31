@@ -303,13 +303,10 @@ export default function AdminCourses() {
               ) : paginatedCourses.map((course) => (
                 <tr key={course.id} className="hover:bg-muted/40">
                   <td className="px-5 py-4">
-                    <div className="flex items-center gap-3">
-                        <img src={course.thumbnailUrl || "https://placehold.co/120x90"} alt={course.title} className="h-14 w-20 rounded-md object-cover" />
-                      <div>
-                          <p className="font-semibold text-foreground">{course.title}</p>
-                        <p className="max-w-md truncate text-sm text-slate-500">{course.category} · {course.description}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">{Number(course.moduleCount || 0)} modules</p>
-                        </div>
+                    <div>
+                      <p className="font-semibold text-foreground">{course.title}</p>
+                      <p className="mt-1 text-sm text-slate-500">{course.category}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{Number(course.moduleCount || 0)} modules</p>
                     </div>
                   </td>
                   <td className="px-5 py-4 text-sm text-foreground">{course.level}</td>

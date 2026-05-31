@@ -4,7 +4,7 @@ import Header from "../components/Header";
 import HeroSection from "../components/HeroSection";
 import Footer from "../components/Footer";
 import SEO from "../components/SEO";
-import { Brain, Code, Heart, TrendingUp, Wallet, Palette, ChevronRight, Play, Shield, Smartphone, Clock, Users, Star, Loader2 } from "lucide-react";
+import { Brain, Code, Heart, TrendingUp, Wallet, Palette, ChevronRight, Play, Shield, Smartphone, Clock, Users, Star, Loader2, BookOpen } from "lucide-react";
 import { motion } from "framer-motion";
 import { getActiveCourses, type Course } from "../lib/firestore";
 
@@ -51,7 +51,7 @@ const Index = () => {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-[linear-gradient(180deg,#fff8f8_0%,#ffffff_18%,#fff4f4_100%)]">
       <SEO 
         title="Home" 
         description="TutorKE - Kenya's leading e-learning platform for AI, coding, personal development, and more."
@@ -61,7 +61,7 @@ const Index = () => {
         <HeroSection />
         
         {/* Features Section */}
-        <section className="py-16 sm:py-20 bg-background">
+        <section className="py-16 sm:py-20 bg-transparent">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -98,7 +98,7 @@ const Index = () => {
         </section>
 
         {/* Featured Courses */}
-        <section className="py-16 sm:py-20 bg-muted">
+        <section className="py-16 sm:py-20 bg-white/60 backdrop-blur-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
