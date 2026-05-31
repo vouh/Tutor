@@ -168,6 +168,25 @@ export interface UserCourseRecord {
   status?: "pending" | "active" | "revoked" | string;
 }
 
+export interface ApplicationRecord {
+  id: string;
+  userId: string;
+  userEmail: string;
+  fullName: string;
+  age: number;
+  hasLaptop: boolean;
+  location: string;
+  interestReason: string;
+  relevantDetails: string;
+  courseId: string;
+  courseName: string;
+  status: "pending" | "active" | "revoked" | string;
+  appliedAt?: Timestamp | null;
+  enrolledAt?: Timestamp | null;
+  approvedAt?: Timestamp | null;
+  updatedAt?: Timestamp | null;
+}
+
 export interface UserDetailsRecord extends UserRecord {
   enrolledCourses: UserCourseRecord[];
   certificatesCount: number;
@@ -844,6 +863,71 @@ export async function getPayments() {
 export async function getPaymentRequests() {
   const snapshot = await getDocs(query(paymentRequestsRef, orderBy("createdAt", "desc")));
   return snapshot.docs.map((document) => ({ id: document.id, ...document.data() } as PaymentRequestRecord));
+}
+
+export async function getApplications() {
+  const [applicationsSnapshot, coursesSnapshot] = await Promise.all([
+    getDocs(query(collection(db, "enrollments"), orderBy("appliedAt", "desc"))),
+    getDocs(coursesRef),
+  ]);
+
+  const coursesById = new Map(
+    coursesSnapshot.docs.map((document) => [document.id, document.data() as { title?: string }])
+  );
+
+  return applicationsSnapshot.docs.map((document) => {
+    const application = document.data() as Partial<ApplicationRecord> & { courseId?: string };
+    const courseId = String(application.courseId || "");
+    const course = coursesById.get(courseId);
+    return {
+      id: document.id,
+      userId: String(application.userId || ""),
+      userEmail: String(application.userEmail || ""),
+      fullName: String(application.fullName || application.userEmail || "New applicant"),
+      age: Number(application.age || 0),
+      hasLaptop: Boolean(application.hasLaptop),
+      location: String(application.location || ""),
+      interestReason: String(application.interestReason || ""),
+      relevantDetails: String(application.relevantDetails || ""),
+      courseId,
+      courseName: String(course?.title || application.courseName || "Untitled course"),
+      status: String(application.status || "pending"),
+      appliedAt: application.appliedAt || null,
+      enrolledAt: application.enrolledAt || null,
+      approvedAt: application.approvedAt || null,
+      updatedAt: application.updatedAt || null,
+    } as ApplicationRecord;
+  });
+}
+
+export async function updateApplicationStatus(application: ApplicationRecord, status: "active" | "revoked") {
+  if (!application.userId || !application.courseId) {
+    throw new Error("Missing application identifiers");
+  }
+
+  const userRecord: UserRecord = {
+    id: application.userId,
+    uid: application.userId,
+    email: application.userEmail,
+    fullName: application.fullName,
+    displayName: application.fullName,
+    name: application.fullName,
+    age: application.age,
+    hasLaptop: application.hasLaptop,
+    location: application.location,
+    interestReason: application.interestReason,
+    createdAt: Timestamp.now(),
+    enrolledCourses: [],
+    paymentsLog: [],
+    sessionToken: null,
+  };
+
+  if (status === "active") {
+    await grantLearnerCourse(userRecord, application.courseId);
+    return;
+  }
+
+  await revokeLearnerCourse(userRecord, application.courseId);
 }
 
 export async function createPaymentRequest(request: Omit<PaymentRequestRecord, "id" | "createdAt" | "updatedAt">) {

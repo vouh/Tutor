@@ -73,7 +73,7 @@ const Courses = () => {
                           </div>
                           <div className="text-right text-xs text-slate-500">
                             <p>{course.duration}</p>
-                            <p>{course.students} students</p>
+                            <p>{course.moduleCount ? `${course.moduleCount} modules` : course.level}</p>
                           </div>
                         </div>
 

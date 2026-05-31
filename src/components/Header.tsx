@@ -56,6 +56,7 @@ const Header = () => {
   const isHomePage = location.pathname === '/';
   const isDarkHeroHeader = isHomePage && !showSolidBg;
   const activeLogo = isDarkHeroHeader ? tutorLogoLight : tutorLogo;
+  const mobileSidebarDarkTheme = isHomePage && !showSolidBg;
 
   return (
     <>
@@ -179,27 +180,41 @@ const Header = () => {
                 animate={{ x: 0 }}
                 exit={{ x: '-100%' }}
                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                className="fixed inset-y-0 left-0 z-50 w-80 max-w-full bg-white dark:bg-slate-900 shadow-xl p-4 md:hidden overflow-auto"
+                className={`fixed inset-y-0 left-0 z-50 w-80 max-w-full p-4 md:hidden overflow-auto shadow-2xl ${
+                  mobileSidebarDarkTheme
+                    ? 'bg-[linear-gradient(180deg,rgba(17,24,39,0.98)_0%,rgba(69,10,10,0.96)_48%,rgba(15,23,42,0.98)_100%)] text-white border-r border-white/10'
+                    : 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800'
+                }`}
               >
-                <div className="flex items-center justify-between mb-4">
-                  <Link to="/" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2">
-                    <img src={activeLogo} alt="TutorKE logo" className="w-12 h-12 rounded-xl object-cover" />
+                <div className="mb-5 flex items-center justify-between">
+                  <Link to="/" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3">
+                    <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${mobileSidebarDarkTheme ? 'bg-white/10 ring-1 ring-white/15' : 'bg-slate-50 ring-1 ring-slate-200'}`}>
+                      <img src={mobileSidebarDarkTheme ? tutorLogoLight : activeLogo} alt="TutorKE logo" className="h-9 w-9 rounded-lg object-cover" />
+                    </div>
+                    <div className="leading-tight">
+                      <p className={`text-sm font-semibold ${mobileSidebarDarkTheme ? 'text-white' : 'text-slate-900'}`}>TutorKE</p>
+                      <p className={`text-xs ${mobileSidebarDarkTheme ? 'text-white/65' : 'text-slate-500'}`}>Learn with focus</p>
+                    </div>
                   </Link>
-                  <button onClick={() => setMobileMenuOpen(false)} className="p-2 rounded-md text-slate-700 dark:text-slate-200">
+                  <button onClick={() => setMobileMenuOpen(false)} className={`rounded-full p-2 ${mobileSidebarDarkTheme ? 'text-white/85 hover:bg-white/10' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
                     <X size={24} />
                   </button>
                 </div>
 
-                <nav className="space-y-1">
+                <nav className="space-y-2">
                   {navItems.map((item) => (
                     <Link
                       key={item.name}
                       to={item.path}
                       onClick={() => setMobileMenuOpen(false)}
-                      className={`block px-4 py-3.5 rounded-xl text-sm font-medium transition-colors ${
+                      className={`block rounded-2xl px-4 py-3.5 text-sm font-semibold transition-all ${
                         isActive(item.path)
-                          ? 'bg-primary/10 text-primary'
-                          : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                          ? mobileSidebarDarkTheme
+                            ? 'bg-white/12 text-white ring-1 ring-white/10'
+                            : 'bg-primary/10 text-primary'
+                          : mobileSidebarDarkTheme
+                            ? 'text-white/82 hover:bg-white/8 hover:text-white'
+                            : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
                       }`}
                     >
                       {item.name}
@@ -211,32 +226,32 @@ const Header = () => {
                       <Link
                         to="/dashboard"
                         onClick={() => setMobileMenuOpen(false)}
-                        className="block px-4 py-3.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        className={`block rounded-2xl px-4 py-3.5 text-sm font-semibold transition-colors ${mobileSidebarDarkTheme ? 'text-white/82 hover:bg-white/8 hover:text-white' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
                       >
                         Dashboard
                       </Link>
                       <button
                         onClick={() => { void logout(); setMobileMenuOpen(false); }}
-                        className="w-full px-4 py-3.5 rounded-xl text-sm font-medium text-left text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        className={`w-full rounded-2xl px-4 py-3.5 text-left text-sm font-semibold transition-colors ${mobileSidebarDarkTheme ? 'text-white/82 hover:bg-white/8 hover:text-white' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
                       >
                         Logout
                       </button>
                     </>
                   ) : null}
 
-                  <div className="pt-4 space-y-2 border-t mt-2">
+                  <div className={`mt-3 space-y-2 border-t pt-4 ${mobileSidebarDarkTheme ? 'border-white/10' : 'border-slate-200 dark:border-slate-800'}`}>
                     {!user ? (
                       <>
                         <button 
                           onClick={() => openAuth('login')}
-                          className="w-full px-4 py-3.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left flex items-center gap-2"
+                          className={`flex w-full items-center gap-2 rounded-2xl px-4 py-3.5 text-left text-sm font-semibold transition-colors ${mobileSidebarDarkTheme ? 'text-white/82 hover:bg-white/8 hover:text-white' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
                         >
                           <User size={18} />
                           Login
                         </button>
                         <button 
                           onClick={() => openAuth('signup')}
-                          className="w-full bg-gradient-to-r from-primary to-accent text-white px-4 py-3.5 rounded-xl text-sm font-semibold"
+                          className="w-full rounded-2xl bg-gradient-to-r from-primary to-accent px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-primary/20"
                         >
                           Get Started Free
                         </button>

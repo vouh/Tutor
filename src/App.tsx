@@ -26,6 +26,7 @@ import AdminNotifications from "./pages/admin/AdminNotifications";
 import Notifications from "./pages/Notifications";
 import Enroll from "./pages/Enroll";
 import AdminActivities from "./pages/admin/AdminActivities";
+import AdminApplications from "./pages/admin/AdminApplications";
 
 import { AuthProvider } from "./contexts/AuthContext";
 import { RequireAuth } from "./components/RequireAuth";
@@ -100,6 +101,7 @@ const App = () => {
                     <Route path="courses" element={<AdminCourses />} />
                     <Route path="modules" element={<AdminModules />} />
                     <Route path="courses/:id/modules" element={<AdminCourseModules />} />
+                    <Route path="applications" element={<AdminApplications />} />
                     <Route path="users" element={<AdminUsers />} />
                     <Route path="notifications" element={<AdminNotifications />} />
                     <Route path="payments" element={<AdminPayments />} />

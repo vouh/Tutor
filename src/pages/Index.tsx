@@ -153,8 +153,8 @@ const Index = () => {
                           <span>{course.rating || '4.9'}</span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <Users size={14} />
-                          <span>{(course.students || 0).toLocaleString()} students</span>
+                          <BookOpen size={14} />
+                          <span>{course.moduleCount ? `${course.moduleCount} modules` : course.duration}</span>
                         </div>
                       </div>
                       <div className="flex items-center justify-between">

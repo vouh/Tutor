@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { BarChart3, Bell, BookOpen, Calendar, CreditCard, LayoutDashboard, Menu, MoonStar, SunMedium, Users, X } from "lucide-react";
+import { BarChart3, Bell, BookOpen, Calendar, CreditCard, LayoutDashboard, Menu, MoonStar, SunMedium, Users, ClipboardList, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { useTheme } from "next-themes";
@@ -8,6 +8,7 @@ import tutorLogoLight from "@/assets/tutor_logo_light.png";
 
 const navItems = [
   { label: "Dashboard", to: "/admin/dashboard", icon: LayoutDashboard },
+  { label: "Applications", to: "/admin/applications", icon: ClipboardList },
   { label: "Courses", to: "/admin/courses", icon: BookOpen },
   { label: "Modules", to: "/admin/modules", icon: BarChart3 },
   { label: "Users", to: "/admin/users", icon: Users },
@@ -27,7 +28,9 @@ export function AdminLayout() {
   const currentTitle = useMemo(() => {
     if (location.pathname.includes("/payments")) return "Payments";
     if (location.pathname.includes("/notifications")) return "Notifications";
+    if (location.pathname.includes("/applications")) return "Applications";
     if (location.pathname.includes("/users")) return "Users";
+    if (location.pathname.includes("/applications")) return "Applications";
     if (location.pathname.includes("/modules")) return "Modules";
     if (location.pathname.includes("/courses")) return "Courses";
     if (location.pathname.includes("/activities")) return "Activities";

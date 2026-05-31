@@ -60,7 +60,7 @@ export default function CourseDetail() {
 
   const courseHighlights = [
     course?.moduleCount ? `${course.moduleCount} module${course.moduleCount === 1 ? "" : "s"}` : "Structured learning path",
-    course?.contentType === "pdf" ? "PDF learning materials" : "Video learning content",
+    course?.contentType === "pdf" ? "PDF learning materials" : "Flexible learning materials",
     course?.level || "All levels welcome",
   ];
 
@@ -192,7 +192,7 @@ export default function CourseDetail() {
               </div>
 
               <p className="text-sm font-semibold uppercase tracking-[0.22em] text-white/70">
-                {course.level || "Course"} · {course.contentType === "pdf" ? "PDF learning" : "Video learning"}
+                {course.level || "Course"} · {course.contentType === "pdf" ? "PDF learning" : "Flexible learning"}
               </p>
 
               <h1 className="mt-4 max-w-3xl text-4xl font-bold leading-tight text-white sm:text-5xl lg:text-6xl">{course.title}</h1>
