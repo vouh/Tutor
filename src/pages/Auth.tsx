@@ -41,14 +41,14 @@ const Auth = () => {
       <Header />
       <main className="flex-grow px-4 pb-16 pt-28">
         <div className="mx-auto grid max-w-5xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm lg:grid-cols-[0.9fr,1.1fr]">
-          <section className="bg-gradient-to-br from-primary to-accent p-8 text-white sm:p-10">
+          <section className="bg-gradient-to-br from-primary via-primary to-accent p-8 text-white sm:p-10">
             <Link to="/courses" className="inline-flex items-center gap-2 text-sm font-semibold text-white/70 hover:text-white">
               <ArrowLeft className="h-4 w-4" /> Courses
             </Link>
             <div className="mt-16 max-w-sm">
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/80">Learner login</p>
               <h1 className="mt-4 text-4xl font-bold leading-tight">Pick up exactly where you left off.</h1>
-              <p className="mt-4 text-sm leading-6 text-white/70">
+              <p className="mt-4 text-sm leading-6 text-white/75">
                 Sign in with the email and password you used when enrolling. New learners should start from a course enrollment page.
               </p>
             </div>

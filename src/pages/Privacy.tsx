@@ -2,11 +2,16 @@ import React from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import SEO from '../components/SEO';
-import { Shield, Lock, Eye, Database, Bell, Trash2, Globe, Mail } from 'lucide-react';
+import { Shield, Lock, Eye, Database, Bell, Trash2, Globe, Mail, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const Privacy = () => {
   const sections = [
+    {
+      icon: <Database size={24} />,
+      title: 'Introduction',
+      content: `We are committed to protecting your personal information. This policy explains what data we collect, how we use it, and your rights.`
+    },
     {
       icon: <Database size={24} />,
       title: 'Data We Collect',
@@ -72,7 +77,7 @@ To exercise any of these rights, contact us via email or phone.`
     {
       icon: <Globe size={24} />,
       title: 'Children & Minors',
-      content: `Our platform is intended for users aged 16 and above. If you are under 18, please ensure a parent or guardian is aware of your enrollment.`
+      content: `Our platform is intended for users aged 13 and above. Learners under 18 should have a parent or guardian aware of the enrollment.`
     },
     {
       icon: <Clock size={24} />,
@@ -87,8 +92,7 @@ To exercise any of these rights, contact us via email or phone.`
       <Header />
       
       <main className="flex-1">
-        {/* Hero */}
-        <section className="bg-gradient-to-br from-slate-900 via-slate-800 to-primary/40 text-white pt-24 pb-16">
+        <section className="bg-gradient-to-br from-slate-900 via-slate-800 to-primary/40 text-white pt-24 pb-14">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -98,37 +102,13 @@ To exercise any of these rights, contact us via email or phone.`
                 <Shield size={32} />
               </div>
               <h1 className="font-montserrat text-3xl sm:text-4xl font-bold mb-4">Privacy Policy</h1>
-              <p className="text-white/70 text-sm sm:text-base max-w-xl mx-auto">
-                We are committed to protecting your personal information.
-              </p>
               <p className="text-white/50 text-xs mt-4">Last updated: June 2026</p>
             </motion.div>
           </div>
         </section>
 
-        {/* Content */}
         <section className="py-12 sm:py-16">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            {/* Trust Badge */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-2xl p-6 mb-10"
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center text-green-600">
-                  <Lock size={24} />
-                </div>
-                <div>
-                  <h2 className="font-bold text-lg text-slate-900 dark:text-white">Your Data is Protected</h2>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
-                    We use industry-standard encryption and never sell your personal information.
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Sections */}
             <div className="space-y-8">
               {sections.map((section, index) => (
                 <motion.div
@@ -147,10 +127,8 @@ To exercise any of these rights, contact us via email or phone.`
                       <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-3">
                         {section.title}
                       </h3>
-                      <div className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed whitespace-pre-line prose-strong:text-slate-900 dark:prose-strong:text-white">
-                        {section.content.split('**').map((part, i) => 
-                          i % 2 === 1 ? <strong key={i} className="text-slate-800 dark:text-slate-200">{part}</strong> : part
-                        )}
+                      <div className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed whitespace-pre-line">
+                        {section.content}
                       </div>
                     </div>
                   </div>
@@ -158,14 +136,13 @@ To exercise any of these rights, contact us via email or phone.`
               ))}
             </div>
 
-            {/* Cookie Notice */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               className="mt-10 bg-slate-100 dark:bg-slate-800/50 rounded-2xl p-6"
             >
-              <h3 className="font-bold text-slate-900 dark:text-white mb-2">🍪 Cookies</h3>
+              <h3 className="font-bold text-slate-900 dark:text-white mb-2">Cookies</h3>
               <p className="text-sm text-slate-600 dark:text-slate-400">
                 We use essential cookies to keep you logged in and remember your preferences. 
                 Analytics cookies help us understand how you use our platform. You can manage 

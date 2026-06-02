@@ -19,7 +19,7 @@ export default function AdminLogin() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const isDark = theme === "dark";
-  const activeLogo = isDark ? tutorLogoLight : tutorLogo;
+  const activeLogo = tutorLogoLight;
 
   if (user) {
     return <Navigate to={from} replace />;
@@ -45,14 +45,21 @@ export default function AdminLogin() {
     <div className="min-h-screen bg-background px-4 py-8 text-foreground">
       <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-7xl items-center justify-center">
         <div className="grid w-full overflow-hidden rounded-[2rem] border border-border bg-card shadow-[0_30px_90px_rgba(15,23,42,0.12)] lg:grid-cols-[1fr,0.95fr]">
-          <div className="relative hidden flex-col justify-center overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-primary p-10 text-white lg:flex">
-            <div className="absolute inset-0 opacity-20 [background-image:radial-gradient(circle_at_top_right,_white,_transparent_35%),radial-gradient(circle_at_bottom_left,_rgba(255,255,255,0.4),_transparent_24%)]" />
-            <div className="relative flex items-center gap-4">
-              <img src={activeLogo} alt="Tutor" className="h-14 w-14 rounded-2xl object-cover shadow-lg shadow-black/20" />
-              <div>
-                <p className="text-xs uppercase tracking-[0.3em] text-white/60">Tutor Admin</p>
-                <h1 className="text-2xl font-bold">Admin login</h1>
+          <div className="relative hidden flex-col justify-center overflow-hidden bg-gradient-to-br from-[#b91c1c] via-primary to-[#ef4444] p-10 text-white lg:flex">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.22),_transparent_34%),radial-gradient(circle_at_bottom_left,_rgba(255,255,255,0.12),_transparent_22%),linear-gradient(135deg,rgba(255,255,255,0.08),transparent_45%)]" />
+            <div className="absolute -left-20 top-24 h-56 w-56 rounded-full bg-white/10 blur-3xl" />
+            <div className="absolute bottom-6 right-8 h-36 w-36 rounded-full bg-black/10 blur-3xl" />
+            <div className="relative max-w-sm">
+              <div className="mb-5 inline-flex items-center gap-3 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 shadow-[0_12px_30px_rgba(0,0,0,0.12)] backdrop-blur-md">
+                <img src={activeLogo} alt="Tutor" className="h-11 w-11 rounded-xl bg-white/90 object-cover p-1 shadow-sm" />
+                <div>
+                  <p className="text-[0.7rem] uppercase tracking-[0.32em] text-white/75">Tutor Admin</p>
+                  <h1 className="text-2xl font-bold leading-tight text-white">Admin login</h1>
+                </div>
               </div>
+              <p className="max-w-sm text-sm leading-7 text-white/82">
+                Access the admin dashboard to manage courses, learners, applications, and payments.
+              </p>
             </div>
           </div>
 
@@ -72,13 +79,6 @@ export default function AdminLogin() {
               >
                 {isDark ? <SunMedium className="h-4 w-4" /> : <MoonStar className="h-4 w-4" />}
               </button>
-            </div>
-
-            <div className="mb-8 rounded-[1.75rem] border border-border bg-muted/30 p-5">
-              <h2 className="text-3xl font-bold tracking-tight">Sign in</h2>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Email and password only.
-              </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
