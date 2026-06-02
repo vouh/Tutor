@@ -85,6 +85,9 @@ export default function CourseDetail() {
     }
   }, [course?.id]);
 
+  // Marketing fallback text if course description is empty
+  const marketingCopy = `A 4-week hands-on bootcamp teaching you how to build real apps using AI-assisted coding, integrate M-Pesa Daraja API, and master in-demand digital skills including social media marketing, freelancing, and online work. This is a live, interactive experience with online group meetings, hands-on assignments, and tests to keep you accountable and moving forward. No prior coding experience needed. Starting mid-July — apply now to secure your spot.`;
+
   // fetch real-time counts: enrollments and modules
   useEffect(() => {
     if (!course?.id) return;
@@ -97,7 +100,8 @@ export default function CourseDetail() {
         const q = query(collection(db, "enrollments"), where("courseId", "==", course.id));
         const snapshot = await getDocs(q);
         if (!mounted) return;
-        setEnrollmentCount(snapshot.size);
+        // If there are zero realtime enrollments, prefer falling back to the course.students value
+        setEnrollmentCount(snapshot.size || null);
 
         // module count (use admin modules collection)
         const modules = await getAdminModules(course.id);
@@ -234,7 +238,7 @@ export default function CourseDetail() {
 
               <h1 className="mt-4 max-w-3xl text-4xl font-bold leading-tight text-white sm:text-5xl lg:text-6xl">{course.title}</h1>
 
-              <p className="mt-5 max-w-2xl text-base leading-8 text-white/82 sm:text-lg">{course.description}</p>
+              <p className="mt-5 max-w-2xl text-base leading-8 text-white/82 sm:text-lg">{course.description?.trim() ? course.description : marketingCopy}</p>
 
               <div className="mt-8 flex flex-wrap items-center gap-3">
                 <button
@@ -326,7 +330,7 @@ export default function CourseDetail() {
                     <h2 className="text-2xl font-bold text-slate-900">Course Description</h2>
                   </div>
                 </div>
-                <p className="mt-4 whitespace-pre-line text-sm leading-8 text-slate-600">{course.description}</p>
+                <p className="mt-4 whitespace-pre-line text-sm leading-8 text-slate-600">{course.description?.trim() ? course.description : marketingCopy}</p>
               </div>
 
               <div className="grid gap-6 md:grid-cols-2">
@@ -409,7 +413,7 @@ export default function CourseDetail() {
                 </button>
                 <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-600">
                   <Info className="h-4 w-4 text-primary" />
-                  Parent/guardian contact is required for applicants under 18.
+                  Sign in or create an account to continue with enrollment.
                 </span>
               </div>
             </div>

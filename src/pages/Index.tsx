@@ -61,36 +61,58 @@ const Index = () => {
         <HeroSection />
         
         {/* Features Section */}
-        <section className="py-16 sm:py-20 bg-transparent">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <section className="relative overflow-hidden border-y border-rose-100/80 bg-[radial-gradient(circle_at_top_left,_rgba(239,68,68,0.10),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(15,23,42,0.04),_transparent_24%),linear-gradient(180deg,_#ffffff_0%,_#fff7f7_100%)] py-18 sm:py-24">
+          <div className="pointer-events-none absolute inset-0">
+            <div className="absolute left-0 top-8 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
+            <div className="absolute bottom-0 right-0 h-72 w-72 rounded-full bg-rose-300/20 blur-3xl" />
+          </div>
+
+          <div className="relative mx-auto grid w-full max-w-[1600px] gap-10 px-4 sm:px-6 lg:grid-cols-[0.9fr,1.1fr] lg:px-8">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-center mb-12"
+              className="flex flex-col justify-center"
             >
-              <h2 className="font-montserrat text-2xl sm:text-3xl md:text-4xl font-bold mb-4">
+              <span className="mb-4 inline-flex w-fit items-center rounded-full border border-primary/15 bg-primary/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-primary">
                 Why Learn With Us
+              </span>
+              <h2 className="font-montserrat text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl">
+                A learning experience that feels open, fast, and modern.
               </h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
-                Premium courses designed for the modern Kenyan learner
+              <p className="mt-5 max-w-xl text-base leading-8 text-muted-foreground sm:text-lg">
+                Premium courses designed for the modern Kenyan learner, with clear pathways, secure payments, and instant access from any device.
               </p>
+
+              <div className="mt-8 grid max-w-xl gap-4 sm:grid-cols-3">
+                {[
+                  { value: '5K+', label: 'Learners' },
+                  { value: '24/7', label: 'Access' },
+                  { value: 'M-Pesa', label: 'Payments' },
+                ].map((stat) => (
+                  <div key={stat.label} className="rounded-3xl border border-white/70 bg-white/80 p-4 shadow-[0_18px_50px_rgba(15,23,42,0.06)] backdrop-blur">
+                    <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
+                    <p className="mt-1 text-xs font-medium uppercase tracking-[0.18em] text-slate-500">{stat.label}</p>
+                  </div>
+                ))}
+              </div>
             </motion.div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {features.map((feature, index) => (
                 <motion.div
                   key={index}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                  className="bg-card border rounded-xl p-6 text-center hover:shadow-lg hover:border-primary/20 transition-all"
+                  transition={{ delay: index * 0.08 }}
+                  className="group rounded-[28px] border border-white/70 bg-white/85 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_70px_rgba(15,23,42,0.10)]"
                 >
-                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mx-auto mb-4 text-primary">
+                  <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-rose-500/10 text-primary ring-1 ring-primary/10 transition-transform duration-300 group-hover:scale-105">
                     {feature.icon}
                   </div>
-                  <h3 className="font-semibold mb-1 text-sm sm:text-base">{feature.title}</h3>
-                  <p className="text-muted-foreground text-xs sm:text-sm">{feature.description}</p>
+                  <h3 className="mb-2 text-base font-semibold text-slate-900">{feature.title}</h3>
+                  <p className="text-sm leading-6 text-slate-500">{feature.description}</p>
                 </motion.div>
               ))}
             </div>
