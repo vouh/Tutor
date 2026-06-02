@@ -383,7 +383,7 @@ export async function getCourse(courseId: string) {
   return snapshot.exists() ? ({ id: snapshot.id, ...snapshot.data() } as CourseRecord) : null;
 }
 
-export async function saveCourse(course: Partial<CourseRecord> & { title: string; description: string; category: string; level: CourseLevel; price: number; isFree: boolean; isPublished: boolean; thumbnailUrl: string; moduleCount: number; summary?: string; instructions?: string; publishedAt?: Timestamp | Date | string | null; }) {
+export async function saveCourse(course: Partial<CourseRecord> & { title: string; description: string; category: string; level: CourseLevel; price: number; isFree: boolean; isPublished: boolean; thumbnailUrl: string; moduleCount: number; summary?: string; instructions?: string; duration?: string; publishedAt?: Timestamp | Date | string | null; }) {
   const courseId = course.id || doc(coursesRef).id;
   const courseRef = doc(db, "courses", courseId);
   const existing = course.id ? await getDoc(courseRef) : null;
@@ -403,7 +403,7 @@ export async function saveCourse(course: Partial<CourseRecord> & { title: string
     isFree: Boolean(course.isFree),
     isPublished: Boolean(course.isPublished),
     status: course.isPublished ? "active" : "draft",
-    duration: "Self-paced",
+    duration: course.duration ? String(course.duration) : "Self-paced",
     students: 0,
     rating: 4.9,
     publishedAt: course.isPublished ? asTimestamp(course.publishedAt) || serverTimestamp() : null,

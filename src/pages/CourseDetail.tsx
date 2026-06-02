@@ -8,6 +8,9 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { getActiveCourses, type Course } from "@/lib/firestore";
+import { getModules as getAdminModules } from "@/lib/adminData";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { enrollCurrentLearner, enrollLearner } from "@/lib/learnerData";
 
 export default function CourseDetail() {
@@ -47,19 +50,23 @@ export default function CourseDetail() {
     () => courses.find((item) => item.id === id || item.slug === id) || null,
     [courses, id]
   );
+  const [enrollmentCount, setEnrollmentCount] = useState<number | null>(null);
+  const [fetchedModuleCount, setFetchedModuleCount] = useState<number | null>(null);
   const isEnrolled = Boolean(course?.id && profile?.enrolledCourses?.includes(course.id));
   const priceLabel = course?.isFree || Number(course?.price || 0) <= 0 ? "Free" : `KES ${Number(course?.price || 0).toLocaleString()}`;
   const courseSummary = course?.summary?.trim() || course?.description || "";
   const fallbackImage = "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1600&q=80";
 
   const courseStats = [
-    { label: "Students", value: course ? course.students.toLocaleString() : "0" },
+    { label: "Students", value: enrollmentCount != null ? enrollmentCount.toLocaleString() : (course ? String(course.students || 0) : "0") },
     { label: "Rating", value: course ? course.rating.toFixed(1) : "4.9" },
-    { label: "Duration", value: course?.duration || "Flexible" },
+    { label: "Duration", value: course?.duration && course.duration !== "Self-paced" ? course.duration : (course?.duration === "Self-paced" && fetchedModuleCount ? `${course?.duration}` : (course?.duration || "Flexible")) },
   ];
 
   const courseHighlights = [
-    course?.moduleCount ? `${course.moduleCount} module${course.moduleCount === 1 ? "" : "s"}` : "Structured learning path",
+    (fetchedModuleCount ?? course?.moduleCount)
+      ? `${(fetchedModuleCount ?? course?.moduleCount)} module${(fetchedModuleCount ?? course?.moduleCount) === 1 ? "" : "s"}`
+      : "Structured learning path",
     course?.contentType === "pdf" ? "PDF learning materials" : "Flexible learning materials",
     course?.level || "All levels welcome",
   ];
@@ -78,15 +85,45 @@ export default function CourseDetail() {
     }
   }, [course?.id]);
 
+  // fetch real-time counts: enrollments and modules
+  useEffect(() => {
+    if (!course?.id) return;
+
+    let mounted = true;
+
+    const loadCounts = async () => {
+      try {
+        // enrollment count
+        const q = query(collection(db, "enrollments"), where("courseId", "==", course.id));
+        const snapshot = await getDocs(q);
+        if (!mounted) return;
+        setEnrollmentCount(snapshot.size);
+
+        // module count (use admin modules collection)
+        const modules = await getAdminModules(course.id);
+        if (!mounted) return;
+        setFetchedModuleCount(modules.length);
+      } catch (err) {
+        console.error("Unable to fetch course counts", err);
+      }
+    };
+
+    void loadCounts();
+
+    return () => {
+      mounted = false;
+    };
+  }, [course?.id]);
+
   const handleEnroll = () => {
     if (!course) return;
-
     if (isEnrolled) {
       navigate(`/courses/${course.id}`);
       return;
     }
 
-    applicationRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    // navigate to dedicated enroll route for a cleaner flow
+    navigate(`/enroll/${course.id}`);
   };
 
   const handleApplicationSubmit = async (event: FormEvent) => {
@@ -239,7 +276,7 @@ export default function CourseDetail() {
                     <div className="mt-4 grid gap-3 text-sm">
                       <div className="flex items-center justify-between gap-4">
                         <span className="inline-flex items-center gap-2 text-slate-500"><UsersRound className="h-4 w-4" /> Learners</span>
-                        <span className="font-semibold text-slate-900">{course.students.toLocaleString()}</span>
+                        <span className="font-semibold text-slate-900">{enrollmentCount != null ? enrollmentCount.toLocaleString() : (course.students ? course.students.toLocaleString() : "0")}</span>
                       </div>
                       <div className="flex items-center justify-between gap-4">
                         <span className="inline-flex items-center gap-2 text-slate-500"><Star className="h-4 w-4" /> Rating</span>
@@ -251,7 +288,7 @@ export default function CourseDetail() {
                       </div>
                       <div className="flex items-center justify-between gap-4">
                         <span className="inline-flex items-center gap-2 text-slate-500"><Layers3 className="h-4 w-4" /> Modules</span>
-                        <span className="font-semibold text-slate-900">{course.moduleCount || "Flexible"}</span>
+                        <span className="font-semibold text-slate-900">{fetchedModuleCount ?? course.moduleCount ?? "Flexible"}</span>
                       </div>
                     </div>
                   </div>
@@ -356,72 +393,25 @@ export default function CourseDetail() {
 
         {!isEnrolled ? (
           <section ref={applicationRef} id="apply" className="border-t border-white/70 bg-white/75 px-4 py-12 backdrop-blur-xl sm:px-6 lg:px-8">
-            <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.85fr,1.15fr]">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">Enrollment form</p>
-                <h2 className="mt-3 text-3xl font-bold text-slate-900">Apply for {course.title}</h2>
-                <p className="mt-3 max-w-xl text-sm leading-6 text-slate-600">
-                  Submit your learner details. Your dashboard will show this course as pending until admin approval is completed.
-                </p>
+            <div className="mx-auto max-w-7xl rounded-[28px] border border-white/70 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] sm:p-8">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">Enrollment</p>
+              <h2 className="mt-3 text-3xl font-bold text-slate-900">Apply on the dedicated enrollment page</h2>
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">
+                We moved the application form to a separate page so course details stay readable on mobile. Click the enroll button to continue with your application.
+              </p>
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                <button
+                  onClick={handleEnroll}
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-primary to-accent px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-primary/20 transition hover:-translate-y-0.5"
+                >
+                  Enroll Now
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+                <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-600">
+                  <Info className="h-4 w-4 text-primary" />
+                  Parent/guardian contact is required for applicants under 18.
+                </span>
               </div>
-
-              <form onSubmit={handleApplicationSubmit} className="rounded-[28px] border border-white/70 bg-white p-5 shadow-[0_20px_60px_rgba(15,23,42,0.08)] sm:p-6">
-                <div className="mb-5 flex items-center gap-3">
-                  <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                    <UserRound className="h-5 w-5" />
-                  </span>
-                  <div>
-                    <h3 className="text-xl font-bold text-slate-900">Learner information</h3>
-                    <p className="text-sm text-slate-500">{user ? "Signed-in application" : "New learner application"}</p>
-                  </div>
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="space-y-2 sm:col-span-2">
-                    <span className="text-sm font-medium text-slate-700">Full name</span>
-                    <input required value={applicationForm.fullName} onChange={(event) => setApplicationForm({ ...applicationForm, fullName: event.target.value })} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10" />
-                  </label>
-                  <label className="space-y-2">
-                    <span className="text-sm font-medium text-slate-700">Email address</span>
-                    <input required type="email" disabled={Boolean(user?.email)} value={applicationForm.email} onChange={(event) => setApplicationForm({ ...applicationForm, email: event.target.value })} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:bg-slate-100" />
-                  </label>
-                  {!user ? (
-                    <label className="space-y-2">
-                      <span className="text-sm font-medium text-slate-700">Access password</span>
-                      <input required type="password" minLength={6} value={applicationForm.password} onChange={(event) => setApplicationForm({ ...applicationForm, password: event.target.value })} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10" />
-                    </label>
-                  ) : null}
-                  <label className="space-y-2">
-                    <span className="text-sm font-medium text-slate-700">Age</span>
-                    <input required type="number" min={1} value={applicationForm.age} onChange={(event) => setApplicationForm({ ...applicationForm, age: event.target.value })} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10" />
-                  </label>
-                  <label className="space-y-2">
-                    <span className="text-sm font-medium text-slate-700">Location</span>
-                    <input required value={applicationForm.location} onChange={(event) => setApplicationForm({ ...applicationForm, location: event.target.value })} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10" placeholder="Town or county" />
-                  </label>
-                  <label className="space-y-2 sm:col-span-2">
-                    <span className="text-sm font-medium text-slate-700">Do you have a laptop?</span>
-                    <select value={applicationForm.hasLaptop} onChange={(event) => setApplicationForm({ ...applicationForm, hasLaptop: event.target.value })} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10">
-                      <option value="yes">Yes</option>
-                      <option value="no">No</option>
-                    </select>
-                  </label>
-                  <label className="space-y-2 sm:col-span-2">
-                    <span className="text-sm font-medium text-slate-700">Why are you choosing this course?</span>
-                    <textarea required rows={4} value={applicationForm.interestReason} onChange={(event) => setApplicationForm({ ...applicationForm, interestReason: event.target.value })} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10" />
-                  </label>
-                  <label className="space-y-2 sm:col-span-2">
-                    <span className="text-sm font-medium text-slate-700">Any relevant details</span>
-                    <textarea rows={3} value={applicationForm.relevantDetails} onChange={(event) => setApplicationForm({ ...applicationForm, relevantDetails: event.target.value })} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10" placeholder="Your availability, learning goals, or anything the instructor should know" />
-                  </label>
-                </div>
-
-                <Button disabled={savingApplication} className="mt-5 w-full gap-2 rounded-full py-6 text-base shadow-lg shadow-primary/15">
-                  {savingApplication ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
-                  {savingApplication ? "Submitting application" : "Submit application"}
-                  {!savingApplication ? <ArrowRight className="h-5 w-5" /> : null}
-                </Button>
-              </form>
             </div>
           </section>
         ) : null}

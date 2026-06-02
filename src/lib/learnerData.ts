@@ -56,6 +56,7 @@ export type EnrollmentInput = {
   hasLaptop: boolean;
   interestReason: string;
   location?: string;
+  guardianContact?: string;
   relevantDetails?: string;
 };
 
@@ -90,6 +91,7 @@ async function writeEnrollment(user: User, input: Omit<EnrollmentInput, "passwor
     age: Number(input.age || 0),
     hasLaptop: Boolean(input.hasLaptop),
     location: input.location?.trim() || "",
+    guardianContact: input.guardianContact?.trim() || "",
     interestReason: input.interestReason.trim(),
     relevantDetails: input.relevantDetails?.trim() || "",
     appliedAt: serverTimestamp(),
@@ -118,6 +120,7 @@ export async function enrollLearner(input: EnrollmentInput) {
     age: Number(input.age),
     hasLaptop: Boolean(input.hasLaptop),
     location: input.location?.trim() || "",
+    guardianContact: input.guardianContact?.trim() || "",
     interestReason: input.interestReason.trim(),
     relevantDetails: input.relevantDetails?.trim() || "",
     enrolledCourses: [],
@@ -167,6 +170,7 @@ export async function enrollCurrentLearner(input: Omit<EnrollmentInput, "passwor
     age: Number(input.age || 0),
     hasLaptop: Boolean(input.hasLaptop),
     location: input.location?.trim() || "",
+    guardianContact: input.guardianContact?.trim() || "",
     interestReason: input.interestReason.trim(),
     relevantDetails: input.relevantDetails?.trim() || "",
     sessionToken: token,

@@ -15,7 +15,7 @@ const Terms = () => {
     {
       icon: <Shield size={24} />,
       title: 'Eligibility',
-      content: `This platform is open to anyone with access to a device and internet connection. By registering you confirm the information you provide is accurate and truthful.`
+      content: `This platform is open to learners who are at least 13 years old. Learners aged 13 to 17 may use the platform with parent or guardian awareness and support. By registering you confirm the information you provide is accurate and truthful.`
     },
     {
       icon: <Scale size={24} />,
@@ -103,7 +103,8 @@ Refund requests must be submitted via email or phone. Refunds are processed with
                 Quick Summary
               </h2>
               <ul className="text-sm text-slate-600 dark:text-slate-400 space-y-2">
-                <li>• You must be 13+ years old to use TutorKE</li>
+                <li>• You must be at least 13 years old to use TutorKE</li>
+                <li>• Learners under 18 should have a parent or guardian aware of the enrollment</li>
                 <li>• Course purchases are for personal use only</li>
                 <li>• We offer a 7-day money-back guarantee</li>
                 <li>• Respect other users and instructors</li>
