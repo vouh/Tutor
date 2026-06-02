@@ -10,69 +10,57 @@ const Terms = () => {
     {
       icon: <FileText size={24} />,
       title: 'Acceptance of Terms',
-      content: `By accessing and using TutorKE's platform, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our services.
-
-These terms apply to all users of the platform, including students, instructors, and visitors.`
+      content: `By registering on this platform, you agree to these Terms of Service. If you do not agree, please do not use the platform.`
     },
     {
       icon: <Shield size={24} />,
-      title: 'User Accounts',
-      content: `To access certain features, you must create an account. You agree to:
-
-• Provide accurate and complete information during registration
-• Maintain the security of your account credentials
-• Notify us immediately of any unauthorized access
-• Be responsible for all activities under your account
-
-We reserve the right to suspend or terminate accounts that violate these terms.`
+      title: 'Eligibility',
+      content: `This platform is open to anyone with access to a device and internet connection. By registering you confirm the information you provide is accurate and truthful.`
     },
     {
       icon: <Scale size={24} />,
-      title: 'Course Access & Payments',
-      content: `When you purchase a course on TutorKE:
-
-• You receive a personal, non-transferable license to access the course content
-• Payment is processed securely through M-Pesa and other approved methods
-• Prices are displayed in Kenyan Shillings (KES)
-• Course access is granted immediately upon successful payment confirmation
-
-We offer a 7-day money-back guarantee on all courses if you're not satisfied.`
+      title: 'Course Enrollment & Access',
+      content: `Once enrolled and payment is confirmed, you get full access to your course materials, live sessions, assignments, and tests for the duration of the course. Access is personal and non-transferable — you may not share your account with anyone else.`
     },
     {
       icon: <AlertCircle size={24} />,
-      title: 'Prohibited Conduct',
-      content: `You agree NOT to:
-
-• Share, resell, or distribute course content
-• Use automated systems to access our platform
-• Harass, abuse, or harm other users or instructors
-• Upload malicious content or attempt to breach security
-• Violate any applicable laws or regulations
-• Create multiple accounts to abuse promotions
-
-Violation of these rules may result in immediate account termination.`
+      title: 'Payments',
+      content: `All payments are made in Kenyan Shillings (KES). Your enrollment is confirmed only after payment is received and verified.`
     },
     {
       icon: <CheckCircle size={24} />,
-      title: 'Intellectual Property',
-      content: `All content on TutorKE, including courses, videos, text, graphics, and logos, is protected by intellectual property laws.
+      title: 'Refund Policy',
+      content: `You are eligible for a full refund if:
 
-• Course content remains the property of respective instructors and TutorKE
-• You may not reproduce, modify, or distribute any content without permission
-• User-generated content (reviews, comments) grants us a license to display it
-• Our trademarks and branding may not be used without written consent`
+• The course has not yet started, and you request within 5 business days of payment, or
+• The instructor fails to deliver the course as outlined at the time of enrollment.
+
+Refund requests must be submitted via email or phone. Refunds are processed within 5 business days of approval. No refunds will be issued once the course has begun and sessions have been delivered as promised.`
     },
     {
       icon: <Clock size={24} />,
-      title: 'Modifications & Termination',
-      content: `We reserve the right to:
-
-• Modify these terms at any time with notice to users
-• Discontinue or modify any part of our services
-• Remove content that violates our policies
-• Terminate accounts for violations
-
-Continued use after changes constitutes acceptance of new terms.`
+      title: 'Student Conduct',
+      content: `You agree to engage respectfully in all sessions, group chats, and interactions on the platform. Any form of harassment, cheating, or sharing of course materials without permission may result in immediate removal without a refund.`
+    },
+    {
+      icon: <CheckCircle size={24} />,
+      title: 'Assignments & Certification',
+      content: `Completion of assignments, tests, and the final project is required to receive a certificate of completion. We reserve the right to withhold certificates where work is found to be plagiarized or incomplete.`
+    },
+    {
+      icon: <Shield size={24} />,
+      title: 'Intellectual Property',
+      content: `All course content, videos, materials, and resources are owned by the platform. You may not reproduce, resell, or distribute any content without written permission.`
+    },
+    {
+      icon: <Clock size={24} />,
+      title: 'Changes to Courses',
+      content: `We reserve the right to make reasonable adjustments to course schedules, instructors, or content. You will be notified in advance of any significant changes.`
+    },
+    {
+      icon: <AlertCircle size={24} />,
+      title: 'Limitation of Liability',
+      content: `We are not responsible for outcomes after course completion including employment, income, or business results. We provide education and tools — results depend on your effort.`
     }
   ];
 
@@ -96,7 +84,7 @@ Continued use after changes constitutes acceptance of new terms.`
               <p className="text-white/70 text-sm sm:text-base max-w-xl mx-auto">
                 Please read these terms carefully before using TutorKE
               </p>
-              <p className="text-white/50 text-xs mt-4">Last updated: December 2025</p>
+              <p className="text-white/50 text-xs mt-4">Last updated: June 2026</p>
             </motion.div>
           </div>
         </section>
@@ -158,12 +146,18 @@ Continued use after changes constitutes acceptance of new terms.`
               viewport={{ once: true }}
               className="mt-12 text-center"
             >
-              <p className="text-slate-500 dark:text-slate-400 text-sm">
-                Have questions about our terms?{' '}
-                <a href="/contact" className="text-primary font-semibold hover:underline">
-                  Contact us
-                </a>
-              </p>
+              <div className="space-y-2 text-sm text-slate-500 dark:text-slate-400">
+                <p>For questions regarding these terms, reach us via email or phone.</p>
+                <p>
+                  <a href="mailto:tutorsupportteam@gmail.com" className="text-primary font-semibold hover:underline">
+                    tutorsupportteam@gmail.com
+                  </a>{' '}
+                  ·{' '}
+                  <a href="tel:0741739262" className="text-primary font-semibold hover:underline">
+                    0741739262
+                  </a>
+                </p>
+              </div>
             </motion.div>
           </div>
         </section>

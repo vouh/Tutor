@@ -38,6 +38,17 @@ const Header = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileMenuOpen]);
+
   const navItems = [
     { name: 'Home', path: '/' },
     { name: 'Courses', path: '/courses' },
@@ -172,6 +183,7 @@ const Header = () => {
 
             {/* Mobile Menu Button */}
             <button
+              type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className={`md:hidden p-2 rounded-lg transition-colors ${
                 showSolidBg ? 'text-slate-900 dark:text-white' : 'text-white'
@@ -191,7 +203,7 @@ const Header = () => {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setMobileMenuOpen(false)}
-                className="fixed inset-0 z-40 bg-black/50 md:hidden"
+                className="fixed inset-0 z-[55] bg-black/50 md:hidden"
               />
 
               <motion.aside
@@ -199,7 +211,7 @@ const Header = () => {
                 animate={{ x: 0 }}
                 exit={{ x: '-100%' }}
                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                className={`fixed inset-y-0 left-0 z-50 w-80 max-w-full p-4 md:hidden overflow-auto shadow-2xl ${
+                className={`fixed inset-y-0 left-0 z-[60] flex h-[100dvh] w-[min(22rem,88vw)] max-w-full flex-col p-4 md:hidden overflow-hidden shadow-2xl ${
                   mobileSidebarDarkTheme
                     ? 'bg-[linear-gradient(180deg,rgba(17,24,39,0.98)_0%,rgba(69,10,10,0.96)_48%,rgba(15,23,42,0.98)_100%)] text-white border-r border-white/10'
                     : 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800'
@@ -215,79 +227,84 @@ const Header = () => {
                       <p className={`text-xs ${mobileSidebarDarkTheme ? 'text-white/65' : 'text-slate-500'}`}>Learn with focus</p>
                     </div>
                   </Link>
-                  <button onClick={() => setMobileMenuOpen(false)} className={`rounded-full p-2 ${mobileSidebarDarkTheme ? 'text-white/85 hover:bg-white/10' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                  <button type="button" onClick={() => setMobileMenuOpen(false)} className={`rounded-full p-2 ${mobileSidebarDarkTheme ? 'text-white/85 hover:bg-white/10' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
                     <X size={24} />
                   </button>
                 </div>
 
-                {!isHomePage && (
-                  <div className="mb-5">
-                    <SiteSearch
-                      placeholder="Search courses and pages..."
-                      className="w-full"
-                      darkMode={false}
-                    />
-                  </div>
-                )}
+                <div className="flex-1 overflow-y-auto pr-1">
+                  {!isHomePage && (
+                    <div className="mb-5">
+                      <SiteSearch
+                        placeholder="Search courses and pages..."
+                        className="w-full"
+                        darkMode={false}
+                      />
+                    </div>
+                  )}
 
-                <nav className="space-y-2">
-                  {navItems.map((item) => (
-                    <Link
-                      key={item.name}
-                      to={item.path}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`block rounded-2xl px-4 py-3.5 text-sm font-semibold transition-all ${
-                        isActive(item.path)
-                          ? mobileSidebarDarkTheme
-                            ? 'bg-white/12 text-white ring-1 ring-white/10'
-                            : 'bg-primary/10 text-primary'
-                          : mobileSidebarDarkTheme
-                            ? 'text-white/82 hover:bg-white/8 hover:text-white'
-                            : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-                      }`}
-                    >
-                      {item.name}
-                    </Link>
-                  ))}
-
-                  {user ? (
-                    <>
+                  <nav className="space-y-2">
+                    {navItems.map((item) => (
                       <Link
-                        to="/dashboard"
+                        key={item.name}
+                        to={item.path}
                         onClick={() => setMobileMenuOpen(false)}
-                        className={`block rounded-2xl px-4 py-3.5 text-sm font-semibold transition-colors ${mobileSidebarDarkTheme ? 'text-white/82 hover:bg-white/8 hover:text-white' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                        className={`block rounded-2xl px-4 py-3.5 text-sm font-semibold transition-all ${
+                          isActive(item.path)
+                            ? mobileSidebarDarkTheme
+                              ? 'bg-white/12 text-white ring-1 ring-white/10'
+                              : 'bg-primary/10 text-primary'
+                            : mobileSidebarDarkTheme
+                              ? 'text-white/82 hover:bg-white/8 hover:text-white'
+                              : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        }`}
                       >
-                        Dashboard
+                        {item.name}
                       </Link>
-                      <button
-                        onClick={() => { void logout(); setMobileMenuOpen(false); }}
-                        className={`w-full rounded-2xl px-4 py-3.5 text-left text-sm font-semibold transition-colors ${mobileSidebarDarkTheme ? 'text-white/82 hover:bg-white/8 hover:text-white' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
-                      >
-                        Logout
-                      </button>
-                    </>
-                  ) : null}
+                    ))}
 
-                  <div className={`mt-3 space-y-2 border-t pt-4 ${mobileSidebarDarkTheme ? 'border-white/10' : 'border-slate-200 dark:border-slate-800'}`}>
-                    {!user ? (
+                    {user ? (
                       <>
-                        <button 
-                          onClick={() => openAuth('login')}
-                          className={`flex w-full items-center gap-2 rounded-2xl px-4 py-3.5 text-left text-sm font-semibold transition-colors ${mobileSidebarDarkTheme ? 'text-white/82 hover:bg-white/8 hover:text-white' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                        <Link
+                          to="/dashboard"
+                          onClick={() => setMobileMenuOpen(false)}
+                          className={`block rounded-2xl px-4 py-3.5 text-sm font-semibold transition-colors ${mobileSidebarDarkTheme ? 'text-white/82 hover:bg-white/8 hover:text-white' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
                         >
-                          <User size={18} />
-                          Login
-                        </button>
-                        <button 
-                          onClick={() => openAuth('signup')}
-                          className="w-full rounded-2xl bg-gradient-to-r from-primary to-accent px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-primary/20"
+                          Dashboard
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => { void logout(); setMobileMenuOpen(false); }}
+                          className={`w-full rounded-2xl px-4 py-3.5 text-left text-sm font-semibold transition-colors ${mobileSidebarDarkTheme ? 'text-white/82 hover:bg-white/8 hover:text-white' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
                         >
-                          Get Started Free
+                          Logout
                         </button>
                       </>
                     ) : null}
-                  </div>
-                </nav>
+
+                    <div className={`mt-3 space-y-2 border-t pt-4 ${mobileSidebarDarkTheme ? 'border-white/10' : 'border-slate-200 dark:border-slate-800'}`}>
+                      {!user ? (
+                        <>
+                          <button 
+                            type="button"
+                            onClick={() => openAuth('login')}
+                            className={`flex w-full items-center gap-2 rounded-2xl px-4 py-3.5 text-left text-sm font-semibold transition-colors ${mobileSidebarDarkTheme ? 'text-white/82 hover:bg-white/8 hover:text-white' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                          >
+                            <User size={18} />
+                            Login
+                          </button>
+                          <button 
+                            type="button"
+                            onClick={() => openAuth('signup')}
+                            className="w-full rounded-2xl bg-gradient-to-r from-primary to-accent px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-primary/20"
+                          >
+                            Get Started Free
+                          </button>
+                        </>
+                      ) : null}
+                    </div>
+                  </nav>
+                </div>
               </motion.aside>
             </>
           )}

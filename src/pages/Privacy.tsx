@@ -9,82 +9,75 @@ const Privacy = () => {
   const sections = [
     {
       icon: <Database size={24} />,
-      title: 'Information We Collect',
-      content: `We collect information to provide better services to our users:
+      title: 'Data We Collect',
+      content: `When you register or apply for a course, we collect:
 
-**Personal Information:**
-• Name and email address during registration
-• Phone number for M-Pesa payments
-• Profile information you choose to provide
+• Full name
+• Email address
+• Phone number
+• Age
+• Location
+• Whether you own a laptop or not
 
-**Usage Data:**
-• Course progress and completion status
-• Pages visited and features used
-• Device information and browser type
-• IP address and location (country level)`
+We collect only what is necessary to deliver the course and communicate with you effectively.`
     },
     {
       icon: <Eye size={24} />,
-      title: 'How We Use Your Information',
-      content: `Your information helps us:
+      title: 'How We Use Your Data',
+      content: `Your information is used to:
 
-• Provide and improve our educational services
-• Process payments securely via M-Pesa
-• Send course updates and important notifications
-• Personalize your learning experience
-• Analyze platform usage to improve features
-• Prevent fraud and ensure platform security
-• Comply with legal obligations`
+• Process your enrollment and confirm payment
+• Send you course materials, session links, and updates
+• Add you to your cohort's communication group
+• Assess equipment needs and tailor the learning experience
+• Contact you regarding your application or course progress`
     },
     {
       icon: <Lock size={24} />,
-      title: 'Data Security',
-      content: `We take the security of your data seriously:
-
-• All data is encrypted in transit using SSL/TLS
-• Payment information is processed securely through M-Pesa
-• We never store your M-Pesa PIN or sensitive payment details
-• Regular security audits and updates
-• Access to personal data is restricted to authorized personnel
-• We use Firebase and Supabase with enterprise-grade security`
+      title: 'Data Sharing',
+      content: `We do not sell, rent, or share your personal data with third parties for marketing purposes. Data may only be shared where required by law or to process your payment through a verified payment provider.`
     },
     {
       icon: <Globe size={24} />,
-      title: 'Data Sharing',
-      content: `We do NOT sell your personal information. We may share data with:
-
-• **Payment processors** (Safaricom M-Pesa) to complete transactions
-• **Course instructors** for enrolled students only
-• **Analytics providers** in anonymized form
-• **Legal authorities** when required by law
-
-Third parties are bound by confidentiality agreements.`
+      title: 'Payments & Financial Data',
+      content: `Payment is processed through trusted providers. We do not store your card or mobile money details on our servers. Transaction records are kept for accounting and refund purposes only.`
     },
     {
       icon: <Bell size={24} />,
-      title: 'Communications',
-      content: `We may contact you regarding:
-
-• Course purchases and payment confirmations
-• Important updates to courses you're enrolled in
-• Platform announcements and new features
-• Marketing communications (with your consent)
-
-You can opt out of marketing emails at any time through your account settings or by clicking "unsubscribe" in any email.`
+      title: 'Data Storage & Security',
+      content: `Your data is stored securely and access is restricted to authorized personnel only. We take reasonable measures to protect your information from unauthorized access, loss, or misuse.`
     },
     {
       icon: <Trash2 size={24} />,
+      title: 'Data Retention',
+      content: `We retain your data for as long as you are an active student or applicant. If you request deletion of your data, we will action this within 14 days unless we are legally required to retain it.`
+    },
+    {
+      icon: <Shield size={24} />,
       title: 'Your Rights',
       content: `You have the right to:
 
-• **Access** your personal data we hold
-• **Correct** inaccurate information
-• **Delete** your account and associated data
-• **Export** your data in a portable format
-• **Opt out** of marketing communications
-• **Withdraw consent** for data processing
+• Access the personal data we hold about you
+• Request correction of inaccurate data
+• Request deletion of your data
+• Withdraw consent for communications at any time
 
-To exercise these rights, contact us at privacy@tutorke.co.ke`
+To exercise any of these rights, contact us via email or phone.`
+    },
+    {
+      icon: <Bell size={24} />,
+      title: 'Cookies',
+      content: `Our platform may use cookies to improve your browsing experience and track session activity. You can disable cookies in your browser settings, though this may affect platform functionality.`
+    },
+    {
+      icon: <Globe size={24} />,
+      title: 'Children & Minors',
+      content: `Our platform is intended for users aged 16 and above. If you are under 18, please ensure a parent or guardian is aware of your enrollment.`
+    },
+    {
+      icon: <Clock size={24} />,
+      title: 'Changes to This Policy',
+      content: `We may update this policy from time to time. Changes will be posted on this page with a revised date. Continued use of the platform after changes means you accept the updated policy.`
     }
   ];
 
@@ -106,9 +99,9 @@ To exercise these rights, contact us at privacy@tutorke.co.ke`
               </div>
               <h1 className="font-montserrat text-3xl sm:text-4xl font-bold mb-4">Privacy Policy</h1>
               <p className="text-white/70 text-sm sm:text-base max-w-xl mx-auto">
-                Your privacy matters to us. Here's how we handle your data.
+                We are committed to protecting your personal information.
               </p>
-              <p className="text-white/50 text-xs mt-4">Last updated: December 2025</p>
+              <p className="text-white/50 text-xs mt-4">Last updated: June 2026</p>
             </motion.div>
           </div>
         </section>
@@ -199,11 +192,17 @@ To exercise these rights, contact us at privacy@tutorke.co.ke`
               </p>
               <div className="flex flex-wrap gap-3">
                 <a 
-                  href="mailto:privacy@tutorke.co.ke"
+                  href="mailto:tutorsupportteam@gmail.com"
                   className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-xl text-sm font-semibold hover:bg-primary/20 transition-colors"
                 >
                   <Mail size={16} />
-                  privacy@tutorke.co.ke
+                  tutorsupportteam@gmail.com
+                </a>
+                <a 
+                  href="tel:0741739262"
+                  className="inline-flex items-center gap-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                >
+                  0741739262
                 </a>
                 <a 
                   href="/contact"

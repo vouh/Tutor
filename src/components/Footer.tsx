@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Mail, Phone, MapPin, Facebook, Twitter, Instagram, Linkedin, Youtube, ArrowRight, BookOpen } from 'lucide-react';
+import { Mail, Phone, MapPin, ArrowRight, BookOpen } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Footer = () => {
@@ -69,23 +69,6 @@ const Footer = () => {
             <p className="text-slate-400 text-sm leading-relaxed">
               Kenya's leading e-learning platform for personal and professional growth.
             </p>
-            <div className="flex gap-3">
-              {[
-                { icon: <Facebook size={18} />, href: '#' },
-                { icon: <Twitter size={18} />, href: '#' },
-                { icon: <Instagram size={18} />, href: '#' },
-                { icon: <Linkedin size={18} />, href: '#' },
-                { icon: <Youtube size={18} />, href: '#' },
-              ].map((social, i) => (
-                <a 
-                  key={i}
-                  href={social.href} 
-                  className="w-9 h-9 bg-slate-800 hover:bg-primary rounded-lg flex items-center justify-center text-slate-400 hover:text-white transition-all duration-300"
-                >
-                  {social.icon}
-                </a>
-              ))}
-            </div>
           </div>
 
           {/* Quick Links */}
@@ -130,13 +113,13 @@ const Footer = () => {
           <div className="space-y-4">
             <h3 className="font-semibold text-white">Contact</h3>
             <div className="space-y-3">
-              <a href="mailto:info@tutorke.co.ke" className="flex items-center gap-3 text-slate-400 hover:text-primary text-sm transition-colors">
+              <a href="mailto:tutorsupportteam@gmail.com" className="flex items-center gap-3 text-slate-400 hover:text-primary text-sm transition-colors">
                 <Mail size={16} className="text-primary" />
-                info@tutorke.co.ke
+                tutorsupportteam@gmail.com
               </a>
-              <a href="tel:+254700123456" className="flex items-center gap-3 text-slate-400 hover:text-primary text-sm transition-colors">
+              <a href="tel:0741739262" className="flex items-center gap-3 text-slate-400 hover:text-primary text-sm transition-colors">
                 <Phone size={16} className="text-primary" />
-                +254 700 123 456
+                0741739262
               </a>
               <div className="flex items-start gap-3 text-slate-400 text-sm">
                 <MapPin size={16} className="text-primary mt-0.5" />
@@ -152,7 +135,7 @@ const Footer = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col items-center justify-between gap-3 text-center sm:flex-row sm:text-left">
             <div className="space-y-1">
-              <p className="text-slate-300 text-sm font-medium">
+              <p className="text-primary text-sm font-medium">
                 Powered by Spectre Tech Limited
               </p>
               <p className="text-slate-500 text-xs sm:text-sm">
