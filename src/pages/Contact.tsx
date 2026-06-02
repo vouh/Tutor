@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import SEO from '../components/SEO';
-import { Mail, Phone, MapPin, Clock, Send, MessageCircle, CheckCircle, Sparkles } from 'lucide-react';
+import { Mail, Phone, MapPin, Clock, Send, MessageCircle, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 
@@ -158,7 +158,7 @@ const Contact = () => {
               className="space-y-4"
             >
               <span className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full text-sm">
-                <Sparkles size={16} className="text-yellow-400" />
+                <CheckCircle size={16} className="text-yellow-400" />
                 We're here to help
               </span>
               <h1 className="font-montserrat text-3xl sm:text-4xl md:text-5xl font-bold">

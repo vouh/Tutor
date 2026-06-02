@@ -90,10 +90,13 @@ const getCourseMatches = async (queryText: string): Promise<SearchResult[]> => {
     .map((course) => {
       const title = String(course.title ?? "");
       const description = String(course.description ?? "");
+      const summary = String(course.summary ?? "");
+      const instructions = String(course.instructions ?? "");
+      const level = String(course.level ?? "");
       const category = String(course.category ?? "");
 
-      const snippet = description || `Category: ${category}`;
-      const score = rankResult(`${title} ${category}`, snippet, queryText);
+      const snippet = summary || description || instructions || `Category: ${category}`;
+      const score = rankResult(`${title} ${category} ${level}`, `${snippet} ${description} ${instructions}`, queryText);
 
       if (score === 0) return null;
 

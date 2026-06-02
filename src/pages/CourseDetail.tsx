@@ -1,6 +1,6 @@
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowRight, BadgeCheck, BookOpen, CheckCircle2, Clock3, Info, Layers3, Loader2, MapPin, Sparkles, Star, ShieldCheck, UserRound, UsersRound } from "lucide-react";
+import { ArrowRight, BadgeCheck, BookOpen, CheckCircle2, Clock3, Info, Layers3, Loader2, MapPin, Star, ShieldCheck, UserRound, UsersRound } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import Header from "@/components/Header";
@@ -187,7 +187,7 @@ export default function CourseDetail() {
           <div className="relative mx-auto grid min-h-[82vh] max-w-7xl gap-10 px-4 pb-14 pt-10 sm:px-6 lg:grid-cols-[1.15fr,0.85fr] lg:px-8 lg:pt-16">
             <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col justify-end">
               <div className="mb-6 inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-white/80 backdrop-blur">
-                <Sparkles className="h-3.5 w-3.5 text-amber-300" />
+                <BadgeCheck className="h-3.5 w-3.5 text-amber-300" />
                 {course.category}
               </div>
 

@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Mail, Phone, MapPin, Facebook, Twitter, Instagram, Linkedin, Youtube, ArrowRight, BookOpen } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Footer = () => {
+  const [currentDateLabel, setCurrentDateLabel] = useState('');
   const categories = [
     'AI & Tech',
     'Coding',
@@ -11,6 +12,23 @@ const Footer = () => {
     'Finance',
     'Creative',
   ];
+
+  useEffect(() => {
+    const formatDate = () => {
+      const formatter = new Intl.DateTimeFormat('en-GB', {
+        weekday: 'short',
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      });
+
+      setCurrentDateLabel(formatter.format(new Date()).replace(/,/g, ''));
+    };
+
+    formatDate();
+    const intervalId = window.setInterval(formatDate, 60_000);
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   return (
     <footer className="bg-slate-900 text-white">
@@ -132,9 +150,17 @@ const Footer = () => {
       {/* Bottom Bar */}
       <div className="border-t border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-slate-500 text-sm">
-              © 2025 TutorKE. All rights reserved.
+          <div className="flex flex-col items-center justify-between gap-3 text-center sm:flex-row sm:text-left">
+            <div className="space-y-1">
+              <p className="text-slate-300 text-sm font-medium">
+                Powered by Spectre Tech Limited
+              </p>
+              <p className="text-slate-500 text-xs sm:text-sm">
+                © 2026 TutorKE. All rights reserved.
+              </p>
+            </div>
+            <p className="text-slate-400 text-sm">
+              {currentDateLabel}
             </p>
             <div className="flex items-center gap-6">
               <Link to="/privacy" className="text-slate-500 hover:text-primary text-sm transition-colors">

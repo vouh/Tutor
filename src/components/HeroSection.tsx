@@ -109,24 +109,6 @@ const HeroSection = () => {
             />
           </motion.div>
 
-          {/* Search Tags */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="mt-4 flex flex-wrap justify-center gap-2"
-          >
-            <span className="text-white/50 text-xs sm:text-sm">Trending:</span>
-            {['ChatGPT', 'Python', 'Investing', 'Self-Care'].map((term) => (
-              <button
-                key={term}
-                onClick={() => navigate(`/courses?search=${term}`)}
-                className="text-xs sm:text-sm text-white/70 hover:text-white bg-white/5 hover:bg-white/15 px-3 py-1 rounded-full border border-white/10 transition-all duration-300"
-              >
-                {term}
-              </button>
-            ))}
-          </motion.div>
         </motion.div>
 
         {/* Category Pills */}

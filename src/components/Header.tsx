@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AuthModal from './AuthModal';
+import SiteSearch from './SiteSearch';
 import { useAuth } from '@/contexts/AuthContext';
 import tutorLogo from '../assets/tutor_logo.png';
 import tutorLogoLight from '../assets/tutor_logo_light.png';
@@ -18,7 +19,7 @@ const Header = () => {
   const routeState = location.state as { openAuthModal?: boolean; authTab?: 'login' | 'signup'; redirectTo?: string } | null;
 
   // Check if we're on pages that need solid header background
-  const needsSolidBg = ['/course', '/courses', '/contact', '/dashboard', '/admin'].some(
+  const needsSolidBg = ['/course', '/courses', '/contact', '/dashboard', '/admin', '/search', '/terms', '/privacy'].some(
     path => location.pathname.startsWith(path)
   );
 
@@ -105,6 +106,16 @@ const Header = () => {
               ))}
             </nav>
 
+            {!isHomePage && (
+              <div className="hidden lg:block w-80 xl:w-96">
+                <SiteSearch
+                  placeholder="Search courses and pages..."
+                  className="w-full"
+                  darkMode={false}
+                />
+              </div>
+            )}
+
             {/* Right Actions */}
             <div className="hidden md:flex items-center gap-2">
               {user ? (
@@ -122,7 +133,11 @@ const Header = () => {
                   </button>
                   <button
                     onClick={() => void logout()}
-                    className="rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-700 transition-all duration-300 hover:border-primary hover:text-primary dark:border-slate-700 dark:text-slate-200"
+                    className={`rounded-full border px-5 py-2 text-sm font-semibold transition-all duration-300 ${
+                      showSolidBg
+                        ? 'border-slate-200 bg-white/90 text-slate-700 hover:border-primary hover:text-primary dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-200'
+                        : 'border-white/35 bg-white/10 text-white/95 shadow-lg shadow-black/10 backdrop-blur-sm hover:border-white/60 hover:bg-white/18 hover:text-white'
+                    }`}
                   >
                     Logout
                   </button>
@@ -134,7 +149,7 @@ const Header = () => {
                     className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
                       showSolidBg 
                         ? 'text-slate-700 dark:text-slate-200 hover:text-primary hover:bg-primary/5' 
-                        : 'text-white/90 hover:text-white hover:bg-white/10'
+                        : 'border border-white/25 bg-white/12 text-white shadow-lg shadow-black/10 backdrop-blur-sm hover:border-white/50 hover:bg-white/20 hover:text-white'
                     }`}
                   >
                     <User size={16} />
@@ -143,7 +158,11 @@ const Header = () => {
 
                   <button 
                     onClick={() => openAuth('signup')}
-                    className="bg-gradient-to-r from-primary to-accent text-white px-5 py-2 rounded-full text-sm font-semibold hover:shadow-lg hover:shadow-primary/25 transition-all duration-300 transform hover:scale-105"
+                    className={`px-5 py-2 rounded-full text-sm font-semibold transition-all duration-300 transform hover:scale-105 ${
+                      showSolidBg
+                        ? 'bg-gradient-to-r from-primary to-accent text-white shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30'
+                        : 'border border-white/20 bg-white/95 text-slate-900 shadow-lg shadow-black/10 hover:bg-white hover:shadow-xl'
+                    }`}
                   >
                     Get Started
                   </button>
@@ -200,6 +219,16 @@ const Header = () => {
                     <X size={24} />
                   </button>
                 </div>
+
+                {!isHomePage && (
+                  <div className="mb-5">
+                    <SiteSearch
+                      placeholder="Search courses and pages..."
+                      className="w-full"
+                      darkMode={false}
+                    />
+                  </div>
+                )}
 
                 <nav className="space-y-2">
                   {navItems.map((item) => (
