@@ -228,15 +228,13 @@ const Header = () => {
                 </div>
 
                 <div className="flex-1 overflow-y-auto pr-1">
-                  {!isHomePage && (
-                    <div className="mb-5">
-                      <SiteSearch
-                        placeholder="Search courses and pages..."
-                        className="w-full"
-                        darkMode={false}
-                      />
-                    </div>
-                  )}
+                  <div className="mb-5">
+                    <SiteSearch
+                      placeholder="Search courses and pages..."
+                      className="w-full"
+                      darkMode={false}
+                    />
+                  </div>
 
                   <nav className="space-y-2">
                     {navItems.map((item) => (

@@ -58,15 +58,12 @@ export default function CourseDetail() {
   const fallbackImage = "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1600&q=80";
 
   const courseStats = [
-    { label: "Students", value: enrollmentCount != null ? enrollmentCount.toLocaleString() : (course ? String(course.students || 0) : "0") },
     { label: "Rating", value: course ? course.rating.toFixed(1) : "4.9" },
     { label: "Duration", value: course?.duration && course.duration !== "Self-paced" ? course.duration : (course?.duration === "Self-paced" && fetchedModuleCount ? `${course?.duration}` : (course?.duration || "Flexible")) },
   ];
 
   const courseHighlights = [
-    (fetchedModuleCount ?? course?.moduleCount)
-      ? `${(fetchedModuleCount ?? course?.moduleCount)} module${(fetchedModuleCount ?? course?.moduleCount) === 1 ? "" : "s"}`
-      : "Structured learning path",
+    "Structured learning path",
     course?.contentType === "pdf" ? "PDF learning materials" : "Flexible learning materials",
     course?.level || "All levels welcome",
   ];
@@ -238,7 +235,7 @@ export default function CourseDetail() {
 
               <h1 className="mt-4 max-w-3xl text-4xl font-bold leading-tight text-white sm:text-5xl lg:text-6xl">{course.title}</h1>
 
-              <p className="mt-5 max-w-2xl text-base leading-8 text-white/82 sm:text-lg">{course.description?.trim() ? course.description : marketingCopy}</p>
+              <p className="mt-5 max-w-2xl text-base leading-8 text-white/80 sm:text-lg">{course.description?.trim() ? course.description : marketingCopy}</p>
 
               <div className="mt-8 flex flex-wrap items-center gap-3">
                 <button
@@ -253,9 +250,9 @@ export default function CourseDetail() {
                 </span>
               </div>
 
-              <div className="mt-8 grid max-w-2xl grid-cols-3 gap-3 sm:gap-4">
+              <div className="mt-8 grid max-w-2xl grid-cols-2 gap-3 sm:gap-4">
                 {courseStats.map((stat) => (
-                  <div key={stat.label} className="rounded-2xl border border-white/10 bg-white/8 px-4 py-4 text-white backdrop-blur-xl">
+                  <div key={stat.label} className="rounded-2xl border border-white/10 bg-white/10 px-4 py-4 text-white backdrop-blur-xl">
                     <p className="text-xs uppercase tracking-[0.2em] text-white/55">{stat.label}</p>
                     <p className="mt-2 text-xl font-bold sm:text-2xl">{stat.value}</p>
                   </div>
@@ -279,20 +276,12 @@ export default function CourseDetail() {
                     <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Course snapshot</p>
                     <div className="mt-4 grid gap-3 text-sm">
                       <div className="flex items-center justify-between gap-4">
-                        <span className="inline-flex items-center gap-2 text-slate-500"><UsersRound className="h-4 w-4" /> Learners</span>
-                        <span className="font-semibold text-slate-900">{enrollmentCount != null ? enrollmentCount.toLocaleString() : (course.students ? course.students.toLocaleString() : "0")}</span>
-                      </div>
-                      <div className="flex items-center justify-between gap-4">
                         <span className="inline-flex items-center gap-2 text-slate-500"><Star className="h-4 w-4" /> Rating</span>
                         <span className="font-semibold text-slate-900">{course.rating.toFixed(1)}</span>
                       </div>
                       <div className="flex items-center justify-between gap-4">
                         <span className="inline-flex items-center gap-2 text-slate-500"><Clock3 className="h-4 w-4" /> Duration</span>
                         <span className="font-semibold text-slate-900">{course.duration}</span>
-                      </div>
-                      <div className="flex items-center justify-between gap-4">
-                        <span className="inline-flex items-center gap-2 text-slate-500"><Layers3 className="h-4 w-4" /> Modules</span>
-                        <span className="font-semibold text-slate-900">{fetchedModuleCount ?? course.moduleCount ?? "Flexible"}</span>
                       </div>
                     </div>
                   </div>

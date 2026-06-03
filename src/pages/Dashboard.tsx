@@ -4,7 +4,9 @@ import { collection, onSnapshot, query, where, orderBy } from "firebase/firestor
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowRight, Bell, BookOpen, ChevronRight, CreditCard, Eye, Home, LogOut, Mail, MapPin, Settings2, User, Calendar, Video, Tv, X } from "lucide-react";
+import { ArrowRight, Bell, BookOpen, ChevronRight, CreditCard, Eye, Home, LogOut, Mail, MapPin, Settings2, User, Calendar, Video, Tv, X, Menu } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import SiteSearch from "@/components/SiteSearch";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PaymentModal from "@/components/PaymentModal";
@@ -56,6 +58,7 @@ const Dashboard = () => {
   const [courses, setCourses] = useState<Array<UserCourseRecord & { course?: Course | null }>>([]);
   const [details, setDetails] = useState<UserDetailsRecord | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [paymentsOpen, setPaymentsOpen] = useState(false);
@@ -350,13 +353,183 @@ const Dashboard = () => {
     }
   };
 
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    if (mobileSidebarOpen) {
+      document.body.style.overflow = "hidden";
+    }
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileSidebarOpen]);
+
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       <Header />
 
+      {/* Mobile Sidebar */}
+      <AnimatePresence>
+        {mobileSidebarOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileSidebarOpen(false)}
+              className="fixed inset-0 z-[55] bg-slate-950/35 backdrop-blur-[1px] lg:hidden"
+            />
+
+            <motion.aside
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="fixed inset-y-0 left-0 z-[60] flex h-[100dvh] w-[min(22rem,88vw)] max-w-full flex-col overflow-hidden border-r border-slate-200 bg-white p-4 text-slate-900 shadow-2xl lg:hidden"
+            >
+              <div className="mb-5 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-rose-500/10 ring-1 ring-primary/10">
+                    <User className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="leading-tight max-w-[12rem] overflow-hidden">
+                    <p className="truncate text-sm font-semibold text-slate-900">{displayName}</p>
+                    <p className="truncate text-xs text-slate-500">{displayEmail}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setMobileSidebarOpen(false)}
+                  className="rounded-full p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto pr-1">
+                <div className="mb-5">
+                  <SiteSearch
+                    placeholder="Search courses and pages..."
+                    className="w-full"
+                    darkMode={false}
+                  />
+                </div>
+
+                <nav className="space-y-2">
+                  <Link
+                    to="/dashboard"
+                    onClick={() => setMobileSidebarOpen(false)}
+                    className="flex w-full items-center justify-between rounded-2xl px-4 py-3.5 text-sm font-semibold bg-primary/10 text-primary ring-1 ring-primary/10"
+                  >
+                    <span className="inline-flex items-center gap-3">
+                      <Home className="h-4 w-4" /> Dashboard
+                    </span>
+                    <ChevronRight className="h-4 w-4 text-primary/70" />
+                  </Link>
+
+                  <Link
+                    to="/courses"
+                    onClick={() => setMobileSidebarOpen(false)}
+                    className="flex w-full items-center justify-between rounded-2xl px-4 py-3.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all"
+                  >
+                    <span className="inline-flex items-center gap-3">
+                      <BookOpen className="h-4 w-4 text-slate-500" /> Courses
+                    </span>
+                    <ArrowRight className="h-4 w-4 text-slate-400" />
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileSidebarOpen(false);
+                      setNotificationsOpen(true);
+                    }}
+                    className="group flex w-full items-center justify-between rounded-2xl px-4 py-3.5 text-left text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all"
+                  >
+                    <span className="inline-flex items-center gap-3">
+                      <Bell className="h-4 w-4 text-slate-500" /> Notifications
+                    </span>
+                    <ChevronRight className="h-4 w-4 text-slate-400" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileSidebarOpen(false);
+                      setPaymentsOpen(true);
+                    }}
+                    className="group flex w-full items-center justify-between rounded-2xl px-4 py-3.5 text-left text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all"
+                  >
+                    <span className="inline-flex items-center gap-3">
+                      <CreditCard className="h-4 w-4 text-slate-500" /> Payments
+                    </span>
+                    <span className="inline-flex items-center gap-2">
+                      {visiblePaymentRequests.length > 0 ? (
+                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">
+                          {visiblePaymentRequests.length}
+                        </span>
+                      ) : null}
+                      <ChevronRight className="h-4 w-4 text-slate-400" />
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileSidebarOpen(false);
+                      setActivitiesOpen(true);
+                    }}
+                    className="group flex w-full items-center justify-between rounded-2xl px-4 py-3.5 text-left text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all"
+                  >
+                    <span className="inline-flex items-center gap-3">
+                      <Calendar className="h-4 w-4 text-slate-500" /> Activities
+                    </span>
+                    <span className="inline-flex items-center gap-2">
+                      {activities.length > 0 ? (
+                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">
+                          {activities.length}
+                        </span>
+                      ) : null}
+                      <ChevronRight className="h-4 w-4 text-slate-400" />
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileSidebarOpen(false);
+                      setSettingsOpen(true);
+                    }}
+                    className="group flex w-full items-center justify-between rounded-2xl px-4 py-3.5 text-left text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all"
+                  >
+                    <span className="inline-flex items-center gap-3">
+                      <Settings2 className="h-4 w-4 text-slate-500" /> Settings
+                    </span>
+                    <ChevronRight className="h-4 w-4 text-slate-400" />
+                  </button>
+
+                  <div className="mt-3 space-y-2 border-t border-slate-200 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMobileSidebarOpen(false);
+                        void logout();
+                      }}
+                      className="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left text-sm font-semibold text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
+                    >
+                      <LogOut className="h-4 w-4" /> Logout
+                    </button>
+                  </div>
+                </nav>
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
       <main className="flex-1 px-4 pb-6 pt-20 sm:px-6">
         <div className="mx-auto grid w-full max-w-[1440px] gap-6 lg:grid-cols-[280px,minmax(0,1fr)]">
-          <aside className="sticky top-24 h-fit rounded-[2rem] border border-primary/20 bg-gradient-to-b from-primary to-red-700 p-6 text-primary-foreground shadow-lg shadow-primary/20">
+          <aside className="hidden lg:block sticky top-24 h-fit rounded-[2rem] border border-primary/20 bg-gradient-to-b from-primary to-red-700 p-6 text-primary-foreground shadow-lg shadow-primary/20">
             <div className="space-y-2">
               <Link to="/dashboard" className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition duration-200 hover:-translate-y-0.5 hover:bg-white/20 hover:shadow-md">
                 <span className="inline-flex items-center gap-3"><Home className="h-4 w-4 text-white/90" /> Dashboard</span>
@@ -396,6 +569,19 @@ const Dashboard = () => {
           </aside>
 
           <section className="space-y-6">
+            {/* Mobile Sidebar Toggle Button */}
+            <div className="flex items-center gap-3 lg:hidden">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setMobileSidebarOpen(true)}
+                className="rounded-xl border-border bg-card shadow-sm flex items-center gap-2 font-semibold text-foreground hover:bg-muted"
+              >
+                <Menu className="h-4 w-4 text-primary" />
+                Dashboard Menu
+              </Button>
+            </div>
+
             <Card className="overflow-hidden border border-primary/15 bg-gradient-to-r from-primary via-red-600 to-red-700 shadow-sm">
               <CardContent className="relative flex flex-col gap-3 px-4 py-5 sm:px-5 sm:py-6 md:flex-row md:items-end md:justify-between">
                 <div className="max-w-2xl space-y-2">

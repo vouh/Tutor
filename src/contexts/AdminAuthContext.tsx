@@ -13,9 +13,13 @@ const AdminAuthContext = createContext<AdminAuthContextValue | undefined>(undefi
 
 function getAllowedEmails() {
   const configured = import.meta.env.VITE_ADMIN_EMAILS;
-  return typeof configured === "string"
-    ? configured.split(",").map((email) => email.trim().toLowerCase()).filter(Boolean)
-    : [];
+  if (typeof configured === "string" && configured.trim().length > 0) {
+    return configured.split(",").map((email) => email.trim().toLowerCase()).filter(Boolean);
+  }
+  return [
+    'admin@tutor.co.ke',
+    'peterkelvinkibiru1532@gmail.com'
+  ];
 }
 
 export function AdminAuthProvider({ children }: { children: ReactNode }) {

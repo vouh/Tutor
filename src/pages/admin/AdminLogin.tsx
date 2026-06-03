@@ -57,7 +57,7 @@ export default function AdminLogin() {
                   <h1 className="text-2xl font-bold leading-tight text-white">Admin login</h1>
                 </div>
               </div>
-              <p className="max-w-sm text-sm leading-7 text-white/82">
+              <p className="max-w-sm text-sm leading-7 text-white/80">
                 Access the admin dashboard to manage courses, learners, applications, and payments.
               </p>
             </div>

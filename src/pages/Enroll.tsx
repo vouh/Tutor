@@ -43,6 +43,17 @@ export default function Enroll() {
     setAuthModalOpen(true);
   };
 
+  const handleApplyNowClick = () => {
+    if (!user) {
+      openAuth('signup');
+    } else {
+      const formEl = document.getElementById("learner-details-form");
+      if (formEl) {
+        formEl.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
+
   useEffect(() => {
     const load = async () => {
       if (!id) {
@@ -154,7 +165,7 @@ export default function Enroll() {
                   Apply for {course.title} today.
                 </h1>
                 <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
-                  Create an account or sign in first, then submit your learner details. We keep the enrollment experience focused and avoid asking for a separate access email.
+                  Click Apply Now to sign in or create an account, then submit your learner details. We keep the enrollment experience focused and avoid asking for a separate access email.
                 </p>
 
                 <div className="mt-8 grid gap-3 sm:grid-cols-3">
@@ -172,11 +183,8 @@ export default function Enroll() {
               </div>
 
               <div className="mt-8 flex flex-wrap items-center gap-3">
-                <Button type="button" onClick={() => openAuth('signup')} className="rounded-full bg-gradient-to-r from-primary to-rose-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-primary/20">
-                  Create account
-                </Button>
-                <Button type="button" variant="outline" onClick={() => openAuth('login')} className="rounded-full px-6 py-3 text-sm font-semibold">
-                  Sign in
+                <Button type="button" onClick={handleApplyNowClick} className="rounded-full bg-gradient-to-r from-primary to-rose-500 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-primary/20 transition hover:-translate-y-0.5">
+                  Apply Now
                 </Button>
                 <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-3 text-xs font-medium text-slate-500">
                   <ShieldCheck className="h-4 w-4 text-primary" />
@@ -201,7 +209,7 @@ export default function Enroll() {
                 <div className="max-w-xl rounded-[28px] border border-white/15 bg-white/12 p-5 text-white backdrop-blur-xl sm:p-6">
                   <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/65">Course preview</p>
                   <h2 className="mt-3 text-2xl font-bold leading-tight sm:text-3xl">{course.title}</h2>
-                  <p className="mt-3 max-w-lg text-sm leading-7 text-white/78">{course.description}</p>
+                  <p className="mt-3 max-w-lg text-sm leading-7 text-white/80">{course.description}</p>
                   <div className="mt-5 flex flex-wrap gap-2">
                     <span className="rounded-full bg-white/12 px-3 py-1.5 text-xs font-medium text-white/85">{course.category}</span>
                     <span className="rounded-full bg-white/12 px-3 py-1.5 text-xs font-medium text-white/85">{course.level || 'All levels'}</span>
@@ -237,13 +245,14 @@ export default function Enroll() {
                 <p>
                   {user
                     ? `You are signed in as ${user.email}. Submit the form when you're ready.`
-                    : 'You need an account before submitting enrollment details. Use the buttons above to continue.'}
+                    : 'You need an account before submitting enrollment details. Click the Apply Now button to continue.'}
                 </p>
               </div>
             </div>
           </aside>
 
           <motion.section
+            id="learner-details-form"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -260,16 +269,15 @@ export default function Enroll() {
             </div>
 
             {!user ? (
-              <div className="rounded-[28px] border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
-                <UserRound className="mx-auto h-10 w-10 text-slate-300" />
-                <h3 className="mt-4 text-xl font-semibold text-slate-900">Sign in to continue</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-500">Create your account or sign in, then come back here to complete the enrollment form.</p>
-                <div className="mt-6 flex flex-wrap justify-center gap-3">
-                  <Button type="button" onClick={() => openAuth('signup')} className="rounded-full bg-gradient-to-r from-primary to-rose-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-primary/20">
-                    Create account
-                  </Button>
-                  <Button type="button" variant="outline" onClick={() => openAuth('login')} className="rounded-full px-6 py-3 text-sm font-semibold">
-                    Sign in
+              <div className="rounded-[28px] border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+                <UserRound className="mx-auto h-12 w-12 text-slate-300 animate-pulse" />
+                <h3 className="mt-4 text-xl font-semibold text-slate-900">Account Required</h3>
+                <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-slate-500">
+                  Please sign in or create an account to unlock the application form.
+                </p>
+                <div className="mt-6 flex justify-center">
+                  <Button type="button" onClick={handleApplyNowClick} className="rounded-full bg-gradient-to-r from-primary to-rose-500 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-primary/20 transition hover:-translate-y-0.5">
+                    Apply Now
                   </Button>
                 </div>
               </div>
